@@ -1,0 +1,23 @@
+laravel: "@testbench"
+
+providers:
+  - OybekDaniyarov\LaravelTrpc\TrpcServiceProvider
+  - Spatie\LaravelData\LaravelDataServiceProvider
+  - Spatie\LaravelTypeScriptTransformer\TypeScriptTransformerServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+workbench:
+  start: /
+  install: true
+  discovers:
+    web: false
+    api: true
+    commands: true
+    config: true
+  build: []
+  assets: []
+  sync: []
+
+env:
+  APP_DEBUG: true
+  APP_ENV: testing

@@ -1,0 +1,41 @@
+# Dependencies
+/vendor
+/node_modules
+/workbench/vendor
+/workbench/node_modules
+
+# Lock files (not committed for libraries)
+/composer.lock
+/package-lock.json
+
+# IDE
+/.idea
+/.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+/.phpunit.cache
+/.phpunit.result.cache
+/coverage
+
+# Build & Cache
+.php-cs-fixer.cache
+*.log
+
+# Generated files
+/workbench/resources/js
+
+# Project specific
+/.claude
+/article.md
+/linkedin-post.md

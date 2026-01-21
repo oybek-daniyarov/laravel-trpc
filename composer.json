@@ -1,0 +1,93 @@
+{
+    "name": "oybek-daniyarov/laravel-trpc",
+    "description": "End-to-end type-safe APIs for Laravel. Like tRPC, but for Laravel + TypeScript.",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "trpc",
+        "typescript",
+        "api",
+        "routes",
+        "type-safe",
+        "postman",
+        "codegen"
+    ],
+    "homepage": "https://github.com/oybek-daniyarov/laravel-trpc",
+    "support": {
+        "issues": "https://github.com/oybek-daniyarov/laravel-trpc/issues",
+        "source": "https://github.com/oybek-daniyarov/laravel-trpc"
+    },
+    "authors": [
+        {
+            "name": "Oybek Daniyarov",
+            "email": "digital@oybek.dev"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0|^12.0",
+        "laravel/ranger": "0.1.*",
+        "laravel/surveyor": "0.1.*",
+        "spatie/laravel-data": "^4.0",
+        "spatie/laravel-typescript-transformer": "^2.0"
+    },
+    "require-dev": {
+        "laravel/boost": "^1.8",
+        "laravel/pint": "^1.0",
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "OybekDaniyarov\\LaravelTrpc\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OybekDaniyarov\\LaravelTrpc\\Tests\\": "tests",
+            "Workbench\\App\\": "workbench/app",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "test-coverage": "pest --coverage --coverage-html=coverage",
+        "format": "pint",
+        "format:check": "pint --test",
+        "analyse": "phpstan analyse",
+        "typecheck": "npm run --prefix workbench typecheck",
+        "check": [
+            "@format:check",
+            "@analyse",
+            "@test"
+        ],
+        "check:all": [
+            "@format:check",
+            "@analyse",
+            "@test",
+            "@generate",
+            "@typecheck"
+        ],
+        "serve": "testbench serve",
+        "generate": "testbench trpc:generate --skip-typescript-transform --force",
+        "generate:all": "testbench trpc:generate --format=all --skip-typescript-transform --force"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "OybekDaniyarov\\LaravelTrpc\\TrpcServiceProvider"
+            ]
+        }
+    }
+}
