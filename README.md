@@ -10,6 +10,8 @@
 
 Generate a fully typed TypeScript client from your Laravel routes with zero runtime overhead. Get autocomplete for route names, request bodies, response types, and URL parameters.
 
+![Autocomplete Demo](docs/autocomplete-demo.gif)
+
 ## Features
 
 - **Full Type Safety**: Request bodies, responses, URL parameters, and query strings are all typed
