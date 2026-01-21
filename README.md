@@ -18,8 +18,15 @@ Generate a fully typed TypeScript client from your Laravel routes with zero runt
 - **Grouped API Client**: Object-based API (`api.users.show()`) with full autocomplete
 - **Postman Export**: Generate Postman collections from your routes
 
+## Example Project
+
+See it in action — a Laravel API with Next.js frontend, fully typed end-to-end:
+
+🔗 [github.com/oybek-daniyarov/empty-space](https://github.com/oybek-daniyarov/empty-space)
+
 ## Table of Contents
 
+- [Example Project](#example-project)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
