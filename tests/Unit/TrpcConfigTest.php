@@ -264,3 +264,72 @@ it('accepts valid configuration values', function () {
     expect($config->getRouteMode())->toBe('api')
         ->and($config->getApiPrefix())->toBe('api/v1');
 });
+
+// Preset and outputs tests
+it('returns outputs directly when no preset is set', function () {
+    $config = new TrpcConfig([
+        'preset' => null,
+        'outputs' => [
+            'routes' => true,
+            'grouped-api' => false,
+        ],
+    ]);
+
+    $outputs = $config->getEffectiveOutputs();
+
+    expect($outputs['routes'])->toBeTrue()
+        ->and($outputs['grouped-api'])->toBeFalse();
+});
+
+it('preset includes grouped-api by default', function () {
+    $config = new TrpcConfig([
+        'preset' => 'inertia',
+        'outputs' => [],
+    ]);
+
+    $outputs = $config->getEffectiveOutputs();
+
+    expect($outputs['grouped-api'])->toBeTrue()
+        ->and($outputs['inertia'])->toBeTrue();
+});
+
+it('user outputs override preset defaults', function () {
+    $config = new TrpcConfig([
+        'preset' => 'inertia',
+        'outputs' => [
+            'grouped-api' => false,
+            'inertia' => false,
+        ],
+    ]);
+
+    $outputs = $config->getEffectiveOutputs();
+
+    // User's outputs should override preset defaults
+    expect($outputs['grouped-api'])->toBeFalse()
+        ->and($outputs['inertia'])->toBeFalse();
+});
+
+it('api preset enables react-query and queries', function () {
+    $config = new TrpcConfig([
+        'preset' => 'api',
+        'outputs' => [],
+    ]);
+
+    $outputs = $config->getEffectiveOutputs();
+
+    expect($outputs['react-query'])->toBeTrue()
+        ->and($outputs['queries'])->toBeTrue();
+});
+
+it('spa preset enables both inertia and react-query', function () {
+    $config = new TrpcConfig([
+        'preset' => 'spa',
+        'outputs' => [],
+    ]);
+
+    $outputs = $config->getEffectiveOutputs();
+
+    expect($outputs['inertia'])->toBeTrue()
+        ->and($outputs['react-query'])->toBeTrue()
+        ->and($outputs['queries'])->toBeTrue();
+});

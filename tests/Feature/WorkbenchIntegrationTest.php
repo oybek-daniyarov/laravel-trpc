@@ -297,4 +297,89 @@ describe('Workbench Integration', function () {
         expect($fetchContent)->toContain('204');
         expect($fetchContent)->toContain('content-length');
     });
+
+    // Bug fix tests
+    it('does not use "default" as variable name in generated api.ts', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        config()->set('trpc.outputs.grouped-api', true);
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        $apiContent = File::get($outputPath.'/api.ts');
+
+        // "export const default" would be a syntax error - ensure it doesn't appear
+        expect($apiContent)->not->toContain('export const default');
+        expect($apiContent)->not->toContain('default:');
+        expect($apiContent)->not->toContain('default,');
+    });
+
+    it('uses misc as fallback group name instead of default', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        // Register a route with no name that would get empty group
+        Route::get('/api/misc-test', fn () => 'test');
+
+        config()->set('trpc.outputs.grouped-api', true);
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        $apiContent = File::get($outputPath.'/api.ts');
+
+        // Should use "misc" instead of "default" for fallback group
+        expect($apiContent)->not->toContain('export const default');
+    });
+
+    it('auth routes have unique method names not all named index', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        config()->set('trpc.outputs.grouped-api', true);
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        $apiContent = File::get($outputPath.'/api.ts');
+
+        // Auth routes should have distinct method names
+        expect($apiContent)->toContain('login:');
+        expect($apiContent)->toContain('logout:');
+        expect($apiContent)->toContain('register:');
+        expect($apiContent)->toContain('me:');
+
+        // Count occurrences of 'index:' in auth section - should be 0 or 1, not multiple
+        preg_match('/export const auth = \{(.*?)\};/s', $apiContent, $matches);
+        if (isset($matches[1])) {
+            $authSection = $matches[1];
+            $indexCount = substr_count($authSection, 'index:');
+            expect($indexCount)->toBeLessThanOrEqual(1);
+        }
+    });
+
+    it('preset allows user to override grouped-api setting', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        // Set preset but override grouped-api to false
+        config()->set('trpc.preset', 'inertia');
+        config()->set('trpc.outputs.grouped-api', false);
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        // api.ts should NOT be generated since user overrode it
+        expect(File::exists($outputPath.'/api.ts'))->toBeFalse();
+    });
 })->group('integration');

@@ -64,13 +64,15 @@ final class DefaultRouteCollector implements Collector
             }
 
             $routeData = $this->processRoute($route, $uri, $method);
-            $collection->add($routeData);
+            if ($routeData !== null) {
+                $collection->add($routeData);
+            }
         }
 
         return $collection;
     }
 
-    private function processRoute(Route $route, string $uri, string $method): RouteData
+    private function processRoute(Route $route, string $uri, string $method): ?RouteData
     {
         $name = $route->getName();
         $mappedName = $this->getMappedRouteName($uri);
@@ -81,6 +83,11 @@ final class DefaultRouteCollector implements Collector
 
         if (empty($name)) {
             $name = $this->generateRouteName($uri, $method);
+        }
+
+        // Skip routes that still have empty names after generation
+        if (empty($name) || $name === '') {
+            return null;
         }
 
         $pathParams = $this->extractPathParameters($uri);
@@ -197,7 +204,7 @@ final class DefaultRouteCollector implements Collector
 
         $parts = explode('.', $routeName);
 
-        return $this->routeGroupCache[$routeName] = $parts[0] !== '' ? $parts[0] : 'default';
+        return $this->routeGroupCache[$routeName] = $parts[0] !== '' ? $parts[0] : 'misc';
     }
 
     /**

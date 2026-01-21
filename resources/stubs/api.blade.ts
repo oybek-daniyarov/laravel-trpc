@@ -13,7 +13,13 @@ export const {!! $groupName !!} = {
 @php
     // Extract action from route name: users.show -> show, users.show.details -> showDetails
     $parts = explode('.', $route['name']);
-    array_shift($parts); // Remove group name
+    $routeGroup = $parts[0] ?? '';
+
+    // Only remove first part if route name starts with the group name
+    if ($routeGroup === $group && count($parts) > 1) {
+        array_shift($parts);
+    }
+
     $action = \Illuminate\Support\Str::camel(implode('_', $parts));
     if (empty($action)) {
         $action = 'index';
@@ -133,7 +139,13 @@ export function createApi(defaultConfig: ApiClientConfig): Api {
 @foreach($groupRoutes as $route)
 @php
     $parts = explode('.', $route['name']);
-    array_shift($parts);
+    $routeGroup = $parts[0] ?? '';
+
+    // Only remove first part if route name starts with the group name
+    if ($routeGroup === $group && count($parts) > 1) {
+        array_shift($parts);
+    }
+
     $action = \Illuminate\Support\Str::camel(implode('_', $parts));
     if (empty($action)) {
         $action = 'index';

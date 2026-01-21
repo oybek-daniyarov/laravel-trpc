@@ -288,16 +288,21 @@ final class TrpcConfig
             'client' => true,
             'index' => true,
             'readme' => true,
+            'grouped-api' => true,
+            'queries' => false,
             'inertia' => false,
             'react-query' => false,
         ];
 
-        return match ($preset) {
+        $presetOutputs = match ($preset) {
             'inertia' => array_merge($baseOutputs, ['inertia' => true]),
-            'api' => array_merge($baseOutputs, ['react-query' => true]),
-            'spa' => array_merge($baseOutputs, ['inertia' => true, 'react-query' => true]),
-            default => $this->getOutputs(),
+            'api' => array_merge($baseOutputs, ['react-query' => true, 'queries' => true]),
+            'spa' => array_merge($baseOutputs, ['inertia' => true, 'react-query' => true, 'queries' => true]),
+            default => $baseOutputs,
         };
+
+        // Merge with user's outputs config so users can override preset defaults
+        return array_merge($presetOutputs, $this->getOutputs());
     }
 
     /**
