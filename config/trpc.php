@@ -67,6 +67,7 @@ return [
     */
 
     'exclude_patterns' => [
+        'boost.*',
         'debugbar.*',
         'horizon.*',
         'telescope.*',
