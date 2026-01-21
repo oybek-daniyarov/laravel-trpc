@@ -20,7 +20,7 @@ Generate a fully typed TypeScript client from your Laravel routes with zero runt
 
 ## Example Project
 
-See it in action — a Laravel API with Next.js frontend, fully typed end-to-end:
+See it in action — a Laravel API with Inertia.js frontend, fully typed end-to-end:
 
 🔗 [github.com/oybek-daniyarov/empty-space](https://github.com/oybek-daniyarov/empty-space)
 
