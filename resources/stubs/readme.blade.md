@@ -231,9 +231,8 @@ const method = getMethod('users.store'); // 'post'
 ### Basic Usage
 
 ```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createQueryOptions, createMutationOptions, queryKey } from './react-query';
-import { api } from './api';
+import { useQuery } from '@tanstack/react-query';
+import { createQueryOptions, queryKey } from './react-query';
 
 function UserProfile({ userId }: { userId: number }) {
     // Query with type-safe options
@@ -241,32 +240,18 @@ function UserProfile({ userId }: { userId: number }) {
         createQueryOptions('users.show', { path: { user: userId } })
     );
 
-    const queryClient = useQueryClient();
-
-    // Mutation with cache invalidation
-    const updateUser = useMutation({
-        ...createMutationOptions('users.update'),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: queryKey('users.show', { user: userId })
-            });
-        },
-    });
-
     if (isLoading) return <div>Loading...</div>;
 
     return (
         <div>
             <h1>{data?.name}</h1>
-            <button onClick={() => updateUser.mutate({
-                path: { user: userId },
-                body: { name: 'New Name' }
-            })}>
-                Update
-            </button>
         </div>
     );
 }
+
+// Query keys for cache management
+const key = queryKey('users.show', { path: { user: 1 } });
+// ['users.show', { path: { user: 1 } }]
 ```
 @endif
 @if($hasQueries)

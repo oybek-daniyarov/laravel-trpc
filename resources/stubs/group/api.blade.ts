@@ -71,7 +71,7 @@ export function create{!! $groupNamePascal !!}Api(config: ApiClientConfig) {
         $paramParts[] = "query?: {$groupNamePascal}RouteTypeMap['{$route['name']}']['query']";
     } elseif ($isPaginated) {
         // Paginated routes always need query support for page parameter
-        $paramParts[] = "query?: { page?: number; [key: string]: unknown }";
+        $paramParts[] = "query?: { page?: number } & Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>";
     }
 
     // Determine if we need a params object or individual params

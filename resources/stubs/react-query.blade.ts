@@ -1,8 +1,7 @@
 @include('trpc::partials.file-header', ['description' => 'React Query Integration'])
 
-import type { UseMutationOptions } from '@tanstack/react-query';
 import { routes, type RouteName, type Routes, type RouteTypeMap } from './routes';
-import { fetchApi, type ApiClientConfig, type NoBody } from './core';
+import { fetchApi, type ApiClientConfig } from './core';
 
 // ============================================
 // Local Type Helpers
@@ -19,30 +18,13 @@ type ParamsOf<T extends RouteName> = PathParamNames<T> extends never
     ? Record<string, never>
     : { readonly [K in PathParamNames<T>]: string | number };
 
-/** Extract request type from a route */
-type RequestOf<T extends RouteName> = T extends keyof RouteTypeMap
-    ? RouteTypeMap[T]['request']
-    : never;
-
 /** Extract response type from a route */
 type ResponseOf<T extends RouteName> = T extends keyof RouteTypeMap
     ? RouteTypeMap[T]['response']
     : never;
 
-/** Extract error type from a route */
-type ErrorOf<T extends RouteName> = T extends keyof RouteTypeMap
-    ? RouteTypeMap[T]['error']
-    : Error;
-
 /** Query params type */
 type QueryParams<_T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
-
-/** Check if a route requires a request body */
-type RequiresBody<T extends RouteName> = RequestOf<T> extends NoBody
-    ? false
-    : RequestOf<T> extends undefined
-        ? false
-        : true;
 
 // ============================================
 // Query Key Helpers
@@ -262,56 +244,3 @@ export function createInfiniteQueryOptions<T extends RouteName>(
     };
 }
 
-// ============================================
-// Mutation Options Helpers
-// ============================================
-
-/** Base mutation variables without body */
-interface MutationVariablesWithoutBody<T extends RouteName> {
-    readonly path?: ParamsOf<T> | null;
-    readonly query?: QueryParams<T>;
-}
-
-/** Mutation variables with required body */
-interface MutationVariablesWithBody<T extends RouteName> {
-    readonly path?: ParamsOf<T> | null;
-    readonly query?: QueryParams<T>;
-    readonly body: RequestOf<T>;
-}
-
-/** Variables for mutation functions - body is required when route has request data */
-export type MutationVariables<T extends RouteName> = RequiresBody<T> extends true
-    ? MutationVariablesWithBody<T>
-    : MutationVariablesWithoutBody<T>;
-
-/**
- * Create mutation options for React Query's useMutation.
- * Returns v5-compatible UseMutationOptions object.
- *
- * @example
- * // For routes with body (POST/PUT/PATCH with request type)
- * const mutation = useMutation(createMutationOptions('users.store', apiConfig));
- * mutation.mutate({ body: { name: 'John', email: 'john@example.com' } });
- *
- * // For routes without body (DELETE or no request type)
- * const deleteMutation = useMutation(createMutationOptions('users.destroy', apiConfig));
- * deleteMutation.mutate({ path: { user: 123 } });
- */
-export function createMutationOptions<T extends RouteName>(
-    name: T,
-    clientConfig: ApiClientConfig
-): UseMutationOptions<ResponseOf<T>, ErrorOf<T>, MutationVariables<T>> {
-    return {
-        mutationKey: mutationKey(name),
-        mutationFn: (variables: MutationVariables<T>) =>
-            fetchApi<ResponseOf<T>>(
-                routes[name],
-                {
-                    path: variables.path ?? null,
-                    body: 'body' in variables ? variables.body : undefined,
-                    query: variables.query,
-                    clientConfig,
-                }
-            ),
-    };
-}

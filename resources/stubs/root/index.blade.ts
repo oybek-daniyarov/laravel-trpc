@@ -82,7 +82,6 @@ export {
     createQueryKeys,
     createQueryOptions,
     createInfiniteQueryOptions,
-    createMutationOptions,
 } from './react-query';
-export type { QueryKeyParams, ReactQueryOptions, MutationVariables } from './react-query';
+export type { QueryKeyParams, ReactQueryOptions } from './react-query';
 @endif

@@ -96,9 +96,8 @@ export {
     createQueryKeys,
     createQueryOptions,
     createInfiniteQueryOptions,
-    createMutationOptions,
 } from './react-query';
-export type { ReactQueryOptions, MutationVariables } from './react-query';
+export type { ReactQueryOptions } from './react-query';
 @endif
 @if(($outputs['queries'] ?? false))
 

@@ -733,7 +733,7 @@ Enable in config:
 
 | File | Description |
 |------|-------------|
-| `react-query.ts` | Low-level utilities: `queryKey`, `createQueryOptions`, `createInfiniteQueryOptions`, `createMutationOptions` |
+| `react-query.ts` | Low-level utilities: `queryKey`, `createQueryOptions`, `createInfiniteQueryOptions` |
 | `queries.ts` | Resource-based query factories organized by API resource (e.g., `usersQueries`, `postsQueries`) |
 | `mutations.ts` | Resource-based mutation factories organized by API resource (e.g., `usersMutations`, `postsMutations`) |
 
@@ -791,8 +791,8 @@ queryClient.invalidateQueries({ queryKey: queries.users.keys.show({ user: 1 }) }
 For more control, use the low-level utilities:
 
 ```typescript
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { queryKey, createQueryOptions, createMutationOptions } from '@/api';
+import { useQuery } from '@tanstack/react-query';
+import { queryKey, createQueryOptions } from '@/api';
 
 // Create query options manually
 const { data } = useQuery(
@@ -804,11 +804,7 @@ const { data } = useQuery(
 
 // Query keys for cache management
 const key = queryKey('users.show', { path: { user: 1 } });
-// ['users.show', { user: 1 }, undefined]
-
-// Mutations
-const mutation = useMutation(createMutationOptions('users.store'));
-mutation.mutate({ body: { name: 'John', email: 'john@example.com' } });
+// ['users.show', { user: 1 }]
 ```
 
 ### Full Example

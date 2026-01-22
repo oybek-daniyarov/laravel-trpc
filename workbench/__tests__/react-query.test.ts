@@ -5,7 +5,6 @@ import {
   mutationKey,
   createQueryKeys,
   createQueryOptions,
-  createMutationOptions,
   createInfiniteQueryOptions,
 } from '../resources/js/api/react-query';
 import type { ApiClientConfig } from '../resources/js/api/core/fetch';
@@ -219,34 +218,5 @@ describe('createInfiniteQueryOptions', () => {
       mockConfig
     );
     expect(options.queryKey).toEqual(['users.index', { query: { per_page: 20 } }]);
-  });
-});
-
-describe('createMutationOptions', () => {
-  it('should return valid mutation options', () => {
-    const options = createMutationOptions('users.store', mockConfig);
-
-    expect(options).toHaveProperty('mutationKey');
-    expect(options).toHaveProperty('mutationFn');
-  });
-
-  it('should include mutationKey', () => {
-    const options = createMutationOptions('users.store', mockConfig);
-    expect(options.mutationKey).toEqual(['users.store']);
-  });
-
-  it('should include mutationFn', () => {
-    const options = createMutationOptions('users.store', mockConfig);
-    expect(typeof options.mutationFn).toBe('function');
-  });
-
-  it('should return correct mutationKey for update', () => {
-    const options = createMutationOptions('users.update', mockConfig);
-    expect(options.mutationKey).toEqual(['users.update']);
-  });
-
-  it('should return correct mutationKey for destroy', () => {
-    const options = createMutationOptions('users.destroy', mockConfig);
-    expect(options.mutationKey).toEqual(['users.destroy']);
   });
 });
