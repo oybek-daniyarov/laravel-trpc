@@ -3,7 +3,37 @@
 /* eslint-disable @typescript-eslint/triple-slash-reference */
 /// <reference path="../laravel.d.ts" />
 
-import type { NoBody, ValidationError, PaginatedResponse } from '../core';
+@php
+    // Determine which types are actually used
+    $needsNoBody = false;
+    $needsValidationError = false;
+    $needsPaginatedResponse = false;
+
+    foreach ($routes as $route) {
+        $requestType = $route['hasRequest'] ? $route['requestType'] : 'NoBody';
+        $queryType = $route['hasQuery'] ? $route['queryType'] : 'NoBody';
+        $responseType = $route['responseType'] ?? 'unknown';
+        $errorType = $route['errorType'] ?? 'ValidationError';
+
+        if ($requestType === 'NoBody' || $queryType === 'NoBody') {
+            $needsNoBody = true;
+        }
+        if ($errorType === 'ValidationError') {
+            $needsValidationError = true;
+        }
+        if (str_contains($responseType, 'PaginatedResponse')) {
+            $needsPaginatedResponse = true;
+        }
+    }
+
+    $imports = [];
+    if ($needsNoBody) $imports[] = 'NoBody';
+    if ($needsValidationError) $imports[] = 'ValidationError';
+    if ($needsPaginatedResponse) $imports[] = 'PaginatedResponse';
+@endphp
+@if(count($imports) > 0)
+import type { {!! implode(', ', $imports) !!} } from '../core';
+@endif
 
 @foreach($routes as $route)
 @php

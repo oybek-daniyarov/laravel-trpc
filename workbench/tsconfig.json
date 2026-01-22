@@ -9,7 +9,13 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["vitest/globals"]
   },
-  "include": ["resources/js/api/**/*.ts"]
+  "include": [
+    "resources/js/api/**/*.ts",
+    "__tests__/**/*.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ]
 }

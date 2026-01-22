@@ -2,11 +2,15 @@
 
 @php
     $hasPaginatedRoutes = count(array_filter($routes, fn($r) => ($r['isPaginated'] ?? false) && $r['method'] === 'get')) > 0;
+    $getRoutes = array_filter($routes, fn($r) => $r['method'] === 'get');
+    $hasQueryRoutes = count(array_filter($getRoutes, fn($r) => $r['hasQuery'])) > 0;
 @endphp
 import { queryOptions{{ $hasPaginatedRoutes ? ', infiniteQueryOptions' : '' }} } from '@tanstack/react-query';
 import type { RequestOptions } from '../core';
 import type { {!! ucfirst(\Illuminate\Support\Str::camel($group)) !!}Api } from './api';
+@if($hasQueryRoutes)
 import type { {!! ucfirst(\Illuminate\Support\Str::camel($group)) !!}RouteTypeMap } from './routes';
+@endif
 
 @php
     $groupName = \Illuminate\Support\Str::camel($group);

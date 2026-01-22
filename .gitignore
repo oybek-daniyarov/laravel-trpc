@@ -7,6 +7,7 @@
 # Lock files (not committed for libraries)
 /composer.lock
 /package-lock.json
+/workbench/package-lock.json
 
 # IDE
 /.idea
@@ -27,6 +28,7 @@ Thumbs.db
 /.phpunit.cache
 /.phpunit.result.cache
 /coverage
+/workbench/coverage
 
 # Build & Cache
 .php-cs-fixer.cache

@@ -25,7 +25,7 @@ type RequestOf<T extends RouteName> = T extends keyof RouteTypeMap
     : never;
 
 /** Query params type */
-type QueryParams<T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
+type QueryParams<_T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
 
 /** Re-export Inertia's VisitOptions for convenience */
 export type InertiaVisitOptions = VisitOptions;
