@@ -5,6 +5,24 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10-beta] - 2026-01-22
+
+### Added
+
+- Add ESLint 9, Prettier, pre-commit hooks and CI frontend checks ([#4](https://github.com/oybek-daniyarov/laravel-trpc/pull/4)) ([#4](https://github.com/oybek-daniyarov/laravel-trpc/pull/4))
+- Add React Query v5 mutations support
+
+### Changed
+
+- Update CHANGELOG.md for v0.1.9-beta
+- Implement tree-shakeable folder structure for generated TypeScript
+- Improve type safety and simplify API surface
+
+### Fixed
+
+- RequestOf/ResponseOf/QueryOf/ErrorOf now accept route names
+- Type helper tests now verify exact types
+
 ## [0.1.9-beta] - 2026-01-22
 
 ### Added
