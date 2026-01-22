@@ -19,6 +19,7 @@ final readonly class GeneratorContext
         public bool $postman = false,
         public bool $postmanEnv = false,
         public bool $skipTypeScriptTransform = false,
+        public ?string $baseUrl = null,
     ) {}
 
     /**

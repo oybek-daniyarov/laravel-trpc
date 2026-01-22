@@ -45,7 +45,8 @@ final class GenerateTrpcCommand extends Command
                             {--postman : Generate Postman collection only (shorthand for --format=postman)}
                             {--postman-env : Also generate Postman environment file}
                             {--format=typescript : Output format (typescript, postman, all)}
-                            {--force : Overwrite files without confirmation}';
+                            {--force : Overwrite files without confirmation}
+                            {--base-url= : Base URL for the generated client (defaults to empty)}';
 
     protected $description = 'Generate TypeScript definitions and/or Postman collections from API routes';
 
@@ -260,9 +261,12 @@ final class GenerateTrpcCommand extends Command
             $this->call('typescript:transform');
         }
 
+        $baseUrl = $this->option('base-url');
+
         $context = new GeneratorContext(
             outputPath: $outputPath,
             config: $this->config,
+            baseUrl: is_string($baseUrl) ? $baseUrl : null,
         );
 
         $result = $this->typeScriptGenerator->generate($routes, $context);

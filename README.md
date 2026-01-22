@@ -835,6 +835,9 @@ php artisan trpc:generate --postman --postman-env
 
 # Overwrite files without confirmation
 php artisan trpc:generate --force
+
+# Custom base URL for generated client
+php artisan trpc:generate --base-url=https://api.example.com
 ```
 
 ### Command Options Reference
@@ -848,6 +851,7 @@ php artisan trpc:generate --force
 | `--postman-env` | Also generate Postman environment file |
 | `--format=FORMAT` | Output format: `typescript` (default), `postman`, or `all` |
 | `--force` | Overwrite existing files without confirmation |
+| `--base-url=URL` | Set default base URL for the generated TypeScript client |
 
 ## Customizing Stubs
 

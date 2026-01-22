@@ -78,6 +78,7 @@ final class TypeScriptGenerator implements Generator
         if ($outputs['fetch'] ?? true) {
             $files[$this->getFileName('fetch', 'fetch.ts')] = $this->stubRenderer->render('fetch', [
                 'timestamp' => now()->toIso8601String(),
+                'baseUrl' => $context->baseUrl,
             ]);
         }
 

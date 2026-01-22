@@ -100,3 +100,30 @@ it('skipTypeScriptTransform defaults to false', function () {
 
     expect($context->skipTypeScriptTransform)->toBeFalse();
 });
+
+it('baseUrl defaults to null', function () {
+    $config = new TrpcConfig([
+        'api_prefix' => 'api',
+    ]);
+
+    $context = new GeneratorContext(
+        outputPath: '/output',
+        config: $config,
+    );
+
+    expect($context->baseUrl)->toBeNull();
+});
+
+it('accepts baseUrl parameter', function () {
+    $config = new TrpcConfig([
+        'api_prefix' => 'api',
+    ]);
+
+    $context = new GeneratorContext(
+        outputPath: '/output',
+        config: $config,
+        baseUrl: 'https://api.example.com',
+    );
+
+    expect($context->baseUrl)->toBe('https://api.example.com');
+});

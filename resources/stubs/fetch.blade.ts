@@ -5,6 +5,9 @@ import { routes, type RouteName } from './routes';
 import type { RequestOf, ResponseOf, ParamsOf, QueryParams } from './helpers';
 import { url as buildUrl, type UrlOptions } from './url-builder';
 
+/** Default base URL for API requests */
+export const DEFAULT_BASE_URL = '{{ $baseUrl ?? '' }}';
+
 /** Next.js cache/revalidation options */
 export interface NextCacheOptions {
     readonly cache?: RequestCache;
@@ -122,7 +125,7 @@ export async function fetchApi<T extends RouteName>(
 ): Promise<ResponseOf<T>> {
     const { path, config, clientConfig = {} } = options;
     const route = routes[name];
-    const baseUrl = clientConfig.baseUrl ?? '';
+    const baseUrl = clientConfig.baseUrl ?? DEFAULT_BASE_URL;
     const url = baseUrl + buildUrl(name, path as ParamsOf<T>, { query: config?.query as UrlOptions['query'] });
 
     const nextOptions = { ...clientConfig.next, ...config?.next };

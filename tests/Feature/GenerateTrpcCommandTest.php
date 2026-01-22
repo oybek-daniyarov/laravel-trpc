@@ -96,6 +96,15 @@ it('command accepts --postman-env flag', function () {
     expect(true)->toBeTrue();
 });
 
+it('command accepts --base-url option', function () {
+    $result = $this->artisan('trpc:generate', [
+        '--base-url' => 'https://api.example.com',
+        '--skip-typescript-transform' => true,
+    ]);
+
+    expect(true)->toBeTrue();
+});
+
 it('TrpcConfig is resolvable from container', function () {
     $config = app(TrpcConfig::class);
 
@@ -119,7 +128,8 @@ it('command signature includes all expected options', function () {
         ->and($signature->hasOption('postman'))->toBeTrue()
         ->and($signature->hasOption('postman-env'))->toBeTrue()
         ->and($signature->hasOption('force'))->toBeTrue()
-        ->and($signature->hasOption('format'))->toBeTrue();
+        ->and($signature->hasOption('format'))->toBeTrue()
+        ->and($signature->hasOption('base-url'))->toBeTrue();
 });
 
 it('command description is set', function () {
