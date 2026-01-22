@@ -17,19 +17,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate changelog
-        uses: orhun/git-cliff-action@v3
-        id: changelog
-        with:
-          config: cliff.toml
-          args: --latest --strip header
-        env:
-          OUTPUT: CHANGES.md
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.changelog.outputs.content }}
+          generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
         env:
