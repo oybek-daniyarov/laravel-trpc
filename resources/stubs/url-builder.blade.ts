@@ -1,12 +1,22 @@
 @include('trpc::partials.file-header', ['description' => 'URL Builder'])
 
-import { routes, type RouteName } from './routes';
-import type { ParamsOf } from './helpers';
+import { routes, type RouteName, type Routes } from './routes';
 
 /** Options for URL building */
 export interface UrlOptions {
     readonly query?: Readonly<Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>>;
 }
+
+/** Extract path param names as a tuple */
+type PathParams<T extends RouteName> = Routes[T]['params'];
+
+/** Extract path param names as a union */
+type PathParamNames<T extends RouteName> = PathParams<T>[number];
+
+/** Build path params object type from route */
+type ParamsOf<T extends RouteName> = PathParamNames<T> extends never
+    ? Record<string, never>
+    : { readonly [K in PathParamNames<T>]: string | number };
 
 /**
  * Build a URL for a route with type-safe path params.

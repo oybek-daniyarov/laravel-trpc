@@ -1,8 +1,35 @@
 @include('trpc::partials.file-header', ['description' => 'React Query Integration'])
 
-import type { RouteName } from './routes';
-import type { ParamsOf, QueryParams, RequestOf, ResponseOf } from './helpers';
-import { fetchApi, type ApiClientConfig } from './fetch';
+import { routes, type RouteName, type Routes, type RouteTypeMap } from './routes';
+import { fetchApi, type ApiClientConfig } from './core';
+
+// ============================================
+// Local Type Helpers
+// ============================================
+
+/** Extract path param names as a tuple */
+type PathParams<T extends RouteName> = Routes[T]['params'];
+
+/** Extract path param names as a union */
+type PathParamNames<T extends RouteName> = PathParams<T>[number];
+
+/** Build path params object type from route */
+type ParamsOf<T extends RouteName> = PathParamNames<T> extends never
+    ? Record<string, never>
+    : { readonly [K in PathParamNames<T>]: string | number };
+
+/** Extract request type from a route */
+type RequestOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['request']
+    : never;
+
+/** Extract response type from a route */
+type ResponseOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['response']
+    : never;
+
+/** Query params type */
+type QueryParams<T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
 
 // ============================================
 // Query Key Helpers
@@ -144,7 +171,7 @@ export interface ReactQueryOptions<T extends RouteName, TSelected = ResponseOf<T
 export function createQueryOptions<T extends RouteName, TSelected = ResponseOf<T>>(
     name: T,
     options: ReactQueryOptions<T, TSelected> = {},
-    clientConfig: ApiClientConfig = {}
+    clientConfig: ApiClientConfig
 ) {
     const { path, query, enabled = true, select, placeholderData, ...queryOptions } = options;
     const params: QueryKeyParams<T> = {};
@@ -154,11 +181,14 @@ export function createQueryOptions<T extends RouteName, TSelected = ResponseOf<T
     return {
         queryKey: queryKey(name, Object.keys(params).length > 0 ? params : undefined),
         queryFn: () =>
-            fetchApi<T>(name, {
-                path: path as ParamsOf<T> | null,
-                config: { query },
-                clientConfig,
-            }),
+            fetchApi<ResponseOf<T>>(
+                routes[name],
+                {
+                    path: path ?? null,
+                    query,
+                    clientConfig,
+                }
+            ),
         enabled,
         ...(select && { select }),
         ...(placeholderData && { placeholderData }),
@@ -184,7 +214,7 @@ export function createInfiniteQueryOptions<T extends RouteName>(
         getPreviousPageParam?: (firstPage: ResponseOf<T>, allPages: ResponseOf<T>[]) => unknown;
         initialPageParam?: unknown;
     } = {},
-    clientConfig: ApiClientConfig = {}
+    clientConfig: ApiClientConfig
 ) {
     const {
         path,
@@ -203,13 +233,14 @@ export function createInfiniteQueryOptions<T extends RouteName>(
     return {
         queryKey: queryKey(name, Object.keys(params).length > 0 ? params : undefined),
         queryFn: ({ pageParam }: { pageParam: unknown }) =>
-            fetchApi<T>(name, {
-                path: path as ParamsOf<T> | null,
-                config: {
-                    query: { ...query, page: pageParam } as unknown as QueryParams<T>,
-                },
-                clientConfig,
-            }),
+            fetchApi<ResponseOf<T>>(
+                routes[name],
+                {
+                    path: path ?? null,
+                    query: { ...query, page: pageParam } as QueryParams<T>,
+                    clientConfig,
+                }
+            ),
         enabled,
         getNextPageParam,
         getPreviousPageParam,
@@ -238,18 +269,19 @@ export interface MutationVariables<T extends RouteName> {
  */
 export function createMutationOptions<T extends RouteName>(
     name: T,
-    clientConfig: ApiClientConfig = {}
+    clientConfig: ApiClientConfig
 ) {
     return {
         mutationKey: mutationKey(name),
         mutationFn: (variables: MutationVariables<T>) =>
-            fetchApi<T>(name, {
-                path: variables.path as ParamsOf<T> | null,
-                config: {
+            fetchApi<ResponseOf<T>>(
+                routes[name],
+                {
+                    path: variables.path ?? null,
                     body: variables.body,
                     query: variables.query,
-                },
-                clientConfig,
-            }),
+                    clientConfig,
+                }
+            ),
     };
 }

@@ -1,9 +1,31 @@
 @include('trpc::partials.file-header', ['description' => 'Inertia.js Integration'])
 
-import { routes, type RouteName } from './routes';
-import type { ParamsOf, QueryParams, RequestOf } from './helpers';
+import { routes, type RouteName, type Routes, type RouteTypeMap } from './routes';
 import { url, type UrlOptions } from './url-builder';
 import type { VisitOptions } from '@inertiajs/core';
+
+// ============================================
+// Local Type Helpers
+// ============================================
+
+/** Extract path param names as a tuple */
+type PathParams<T extends RouteName> = Routes[T]['params'];
+
+/** Extract path param names as a union */
+type PathParamNames<T extends RouteName> = PathParams<T>[number];
+
+/** Build path params object type from route */
+type ParamsOf<T extends RouteName> = PathParamNames<T> extends never
+    ? Record<string, never>
+    : { readonly [K in PathParamNames<T>]: string | number };
+
+/** Extract request type from a route */
+type RequestOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['request']
+    : never;
+
+/** Query params type */
+type QueryParams<T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
 
 /** Re-export Inertia's VisitOptions for convenience */
 export type InertiaVisitOptions = VisitOptions;

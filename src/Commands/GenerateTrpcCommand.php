@@ -46,7 +46,8 @@ final class GenerateTrpcCommand extends Command
                             {--postman-env : Also generate Postman environment file}
                             {--format=typescript : Output format (typescript, postman, all)}
                             {--force : Overwrite files without confirmation}
-                            {--base-url= : Base URL for the generated client (defaults to empty)}';
+                            {--base-url= : Base URL for the generated client (defaults to empty)}
+                            {--clean : Clear output directory before generating}';
 
     protected $description = 'Generate TypeScript definitions and/or Postman collections from API routes';
 
@@ -248,6 +249,12 @@ final class GenerateTrpcCommand extends Command
     {
         $outputPath = $this->getTypeScriptOutputPath();
 
+        // Clear output directory if --clean flag is set
+        if ($this->option('clean') && File::exists($outputPath)) {
+            File::deleteDirectory($outputPath);
+            $this->info('Cleared output directory');
+        }
+
         // Check if laravel.d.ts exists and auto-transform is enabled
         $laravelTypesPath = $this->config->getLaravelTypesPath() ?? $outputPath;
         $laravelDtsPath = $laravelTypesPath.'/laravel.d.ts';
@@ -366,7 +373,15 @@ final class GenerateTrpcCommand extends Command
             label: 'Writing files',
             steps: $filePairs,
             callback: function (array $file) use ($outputPath): void {
-                File::put($outputPath.'/'.$file['filename'], $file['content']);
+                $filePath = $outputPath.'/'.$file['filename'];
+                $dir = dirname($filePath);
+
+                // Create subdirectories if they don't exist
+                if (! File::exists($dir)) {
+                    File::makeDirectory($dir, 0755, true);
+                }
+
+                File::put($filePath, $file['content']);
             }
         );
 
