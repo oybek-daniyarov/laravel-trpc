@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7-beta] - 2025-01-22
+
+### Changed
+- Restructured README to lead with value proposition and quick example
+- Added "What This Is", "Status", "Output Contract", "Known Limitations", "Troubleshooting", and "Versioning" sections
+- Reframed Backstory section to be more concise
+- Expanded composer.json keywords for better Packagist discoverability
+
+### Added
+- UPGRADE.md with general upgrade guidance
+- Populated CHANGELOG.md with version history
+
 ## [0.1.6-beta] - 2025-01-22
 
 ### Added
