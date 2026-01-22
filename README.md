@@ -4,13 +4,39 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/oybek-daniyarov/laravel-trpc.svg?style=flat-square)](https://packagist.org/packages/oybek-daniyarov/laravel-trpc)
 [![License](https://img.shields.io/packagist/l/oybek-daniyarov/laravel-trpc.svg?style=flat-square)](https://packagist.org/packages/oybek-daniyarov/laravel-trpc)
 
-> End-to-end type-safe APIs for Laravel. Like tRPC, but for Laravel + TypeScript.
+> Generate a fully typed TypeScript client from your Laravel routes — with request types, response types, and optional React Query/Inertia helpers.
 
-> **Built with AI.** This package was developed using [Claude Code](https://claude.ai/code) — architected and directed by a human, implemented by AI. Use at your own risk. [Read the backstory](#backstory).
+## Quick Example
 
-Generate a fully typed TypeScript client from your Laravel routes with zero runtime overhead. Get autocomplete for route names, request bodies, response types, and URL parameters.
+```typescript
+import { api } from '@/api';
+
+// Full autocomplete and type safety
+const users = await api.users.index();
+const user = await api.users.show({ user: 1 });
+const newUser = await api.users.store({
+    name: 'John',
+    email: 'john@example.com',
+    password: 'secret'
+});
+```
 
 ![Autocomplete Demo](docs/autocomplete-demo.gif)
+
+## What This Is (and Isn't)
+
+**What it is:** A Laravel-first generator that inspects your routes and produces a TypeScript client with fully typed inputs and outputs.
+
+**What it isn't:** This is not a server-side implementation of the tRPC protocol. It doesn't require a Node.js tRPC router. It generates a typed HTTP client for your existing Laravel routes.
+
+**Runtime model:** Generation happens at build time via `php artisan trpc:generate`. The output is a small TypeScript client that calls your HTTP endpoints — no runtime reflection on the PHP side.
+
+## Status
+
+**Beta (0.x).** The public API and generated output structure may change between minor versions. For production use:
+- Pin to exact versions in `composer.json`
+- Review generated output diffs on upgrade
+- Follow the [CHANGELOG](CHANGELOG.md) for breaking changes
 
 ## Features
 
@@ -35,6 +61,7 @@ See it in action — a Laravel API with Inertia.js frontend, fully typed end-to-
 - [TypedRoute Attribute](#typedroute-attribute)
 - [Generate & Use](#generate--use)
 - [Generated Files](#generated-files)
+- [Output Contract](#output-contract)
 - [Configuration](#configuration)
 - [Middleware & Authentication](#middleware--authentication)
 - [Error Handling](#error-handling)
@@ -44,6 +71,9 @@ See it in action — a Laravel API with Inertia.js frontend, fully typed end-to-
 - [API Client Configuration](#api-client-configuration)
 - [Command Options](#command-options)
 - [Customizing Stubs](#customizing-stubs)
+- [Known Limitations](#known-limitations)
+- [Troubleshooting](#troubleshooting)
+- [Versioning](#versioning)
 - [Backstory](#backstory)
 
 ## Requirements
@@ -282,6 +312,32 @@ await api.users.destroy({ user: 1 });
 | `inertia.ts` | Inertia.js helpers (route, visit, formAction) |
 | `index.ts` | Barrel exports |
 | `README.md` | Generated documentation |
+
+## Output Contract
+
+The generator produces these files with stable names:
+
+```
+resources/js/api/
+├── types.ts          # Core types (ApiError, PaginatedResponse, etc.)
+├── routes.ts         # Route definitions and RouteTypeMap
+├── helpers.ts        # Type helpers (RequestOf, ResponseOf, etc.)
+├── url-builder.ts    # Type-safe URL builder
+├── fetch.ts          # Low-level fetch wrapper
+├── client.ts         # Configurable API client factory
+├── api.ts            # Grouped API client (api.users.show())
+├── inertia.ts        # Inertia.js helpers (optional)
+├── react-query.ts    # React Query utilities (optional)
+├── queries.ts        # Resource-based query hooks (optional)
+├── index.ts          # Barrel exports
+└── README.md         # Generated documentation
+```
+
+### Naming Conventions
+
+- **Route names** map directly to TypeScript keys: `users.index` → `api.users.index()`
+- **Groups** are derived from the first segment of the route name
+- **Parameters** use Laravel's route parameter names: `{user}` → `{ user: number }`
 
 ## Configuration
 
@@ -863,22 +919,53 @@ php artisan vendor:publish --tag=trpc-stubs
 
 Templates will be copied to `resources/views/vendor/trpc/`.
 
+## Known Limitations
+
+- **Route model binding:** Parameters are typed as `number | string` by default. Custom types require explicit `#[TypedRoute]` configuration.
+- **Union/polymorphic responses:** Not automatically detected. Use a single response Data class or document via `#[TypedRoute(response: ...)]`.
+- **Middleware inference:** Auth detection relies on common middleware names (`auth`, `auth:*`). Custom auth middleware may not be detected.
+- **Closure routes:** Routes without controller methods cannot have types extracted automatically.
+
+## Troubleshooting
+
+### "No API routes found"
+- Ensure your routes use the configured `api_prefix` (default: `api`)
+- Check that routes are registered before running the command
+- Try `php artisan route:list` to verify routes exist
+
+### Generated types are `unknown`
+- Add `#[TypeScript]` attribute to your Data classes
+- Run `php artisan typescript:transform` first
+- Check that `laravel.d.ts` exists in your output directory
+
+### TypeScript errors after regeneration
+- Clear your TypeScript cache: `rm -rf node_modules/.cache`
+- Ensure your `tsconfig.json` includes the output directory
+- Check for circular dependencies in your Data classes
+
+### Route names are duplicated
+- The generator appends `_1`, `_2` suffixes for duplicate names
+- Use unique route names or configure `route_name_mappings` in config
+
+## Versioning
+
+This package follows [Semantic Versioning](https://semver.org/):
+
+- **Patch (0.1.x):** Bug fixes, no changes to generated output shape
+- **Minor (0.x.0):** New features, may add fields to generated output
+- **Major (x.0.0):** Breaking changes to generated output structure or API
+
+During the **0.x beta period**, minor versions may include breaking changes. These will be clearly documented in the [CHANGELOG](CHANGELOG.md).
+
 ## Backstory
 
-Every line of code in this package was generated by [Claude](https://claude.ai) through [Claude Code](https://claude.ai/code).
+I built this to solve a real problem: getting a strongly typed TypeScript client from Laravel routes without manual type duplication.
 
-Here's how it worked:
+I used AI tooling (Claude Code) to accelerate development — it helped with boilerplate, iteration, and exploration. The architecture and direction were mine; the implementation was collaborative.
 
-1. **Skills Discovery** — I asked Claude what skills were needed to build this package
-2. **Actor Creation** — For each skill area (architecture, TypeScript generation, testing, etc.), I created specialized agents
-3. **Scope Definition** — I defined what each agent should build and what quality criteria to meet
-4. **Orchestration** — I ran agents (sometimes 16 in parallel), reviewed outputs, and course-corrected
+The package has 250+ passing tests, PHPStan level 8 analysis, and is used in production projects. I'm sharing it because it works and saves time.
 
-I didn't write the code — I architected, directed, and reviewed it. When things broke, I asked the right questions. When tests failed, I debugged by asking, not coding. The AI implemented; I directed.
-
-The package has 239 passing tests and works. But it was built as an experiment in AI-directed development. Future updates will continue the same way — directed by me, implemented by Claude.
-
-Found a bug? Open an issue. I'll point Claude at it.
+Found a bug? [Open an issue](https://github.com/oybek-daniyarov/laravel-trpc/issues). I'll fix it.
 
 ## License
 
