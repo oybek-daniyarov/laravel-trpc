@@ -21,6 +21,11 @@ export type { {!! $interface !!} } from './routes';
 export { create{!! $groupNamePascal !!}Api, type {!! $groupNamePascal !!}Api } from './api';
 @if($hasQueries)
 
-// React Query hooks
+// React Query queries
 export { {!! $groupName !!}Keys, create{!! $groupNamePascal !!}Queries } from './queries';
+@endif
+@if($hasMutations)
+
+// React Query mutations
+export { {!! $groupName !!}MutationKeys, create{!! $groupNamePascal !!}Mutations } from './mutations';
 @endif

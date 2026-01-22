@@ -261,6 +261,8 @@ final class TrpcConfig
             'readme' => true,
             'inertia' => true,
             'react-query' => false,
+            'queries' => false,
+            'mutations' => false,
         ]);
     }
 
@@ -308,14 +310,15 @@ final class TrpcConfig
             'readme' => true,
             'grouped-api' => true,
             'queries' => false,
+            'mutations' => false,
             'inertia' => false,
             'react-query' => false,
         ];
 
         $presetOutputs = match ($preset) {
             'inertia' => array_merge($baseOutputs, ['inertia' => true]),
-            'api' => array_merge($baseOutputs, ['react-query' => true, 'queries' => true]),
-            'spa' => array_merge($baseOutputs, ['inertia' => true, 'react-query' => true, 'queries' => true]),
+            'api' => array_merge($baseOutputs, ['react-query' => true, 'queries' => true, 'mutations' => true]),
+            'spa' => array_merge($baseOutputs, ['inertia' => true, 'react-query' => true, 'queries' => true, 'mutations' => true]),
             default => $baseOutputs,
         };
 

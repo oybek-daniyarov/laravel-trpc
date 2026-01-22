@@ -49,6 +49,7 @@ return [
         'inertia' => true,
         'react-query' => true,  // Enable for testing
         'queries' => true,      // Enable for testing
+        'mutations' => true,    // Enable for testing
         'swr' => false,
         'rtk-query' => false,
     ],

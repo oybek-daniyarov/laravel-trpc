@@ -407,6 +407,168 @@ it('generates group queries with infiniteQueryOptions when paginated routes exis
     expect($queriesContent)->toContain("import { queryOptions, infiniteQueryOptions } from '@tanstack/react-query'");
 });
 
+it('generates mutations files when enabled', function () {
+    $config = new TrpcConfig([
+        'outputs' => [
+            'routes' => true,
+            'types' => true,
+            'helpers' => true,
+            'url-builder' => true,
+            'fetch' => true,
+            'client' => true,
+            'index' => true,
+            'readme' => false,
+            'grouped-api' => true,
+            'inertia' => false,
+            'react-query' => true,
+            'queries' => true,
+            'mutations' => true,
+        ],
+    ]);
+
+    $generator = new TypeScriptGenerator($config, $this->stubRenderer);
+    $context = new GeneratorContext('/tmp/trpc-test/api', $config);
+    $routes = createTestRouteCollection();
+
+    $result = $generator->generate($routes, $context);
+
+    expect($result->files)->toHaveKey('mutations.ts')
+        ->and($result->files)->toHaveKey('users/mutations.ts');
+});
+
+it('generates mutations with correct structure', function () {
+    $config = new TrpcConfig([
+        'outputs' => [
+            'routes' => true,
+            'types' => true,
+            'helpers' => true,
+            'url-builder' => true,
+            'fetch' => true,
+            'client' => true,
+            'index' => true,
+            'readme' => false,
+            'grouped-api' => true,
+            'inertia' => false,
+            'react-query' => true,
+            'queries' => true,
+            'mutations' => true,
+        ],
+    ]);
+
+    $generator = new TypeScriptGenerator($config, $this->stubRenderer);
+    $context = new GeneratorContext('/tmp/trpc-test/api', $config);
+    $routes = createTestRouteCollection();
+
+    $result = $generator->generate($routes, $context);
+    $mutationsContent = $result->files['users/mutations.ts'];
+
+    // Should have mutation keys
+    expect($mutationsContent)->toContain('usersMutationKeys')
+        // Should have factory function
+        ->and($mutationsContent)->toContain('createUsersMutations')
+        // Should import UseMutationOptions from @tanstack/react-query
+        ->and($mutationsContent)->toContain("import type { UseMutationOptions } from '@tanstack/react-query'")
+        // Should have store mutation (POST route)
+        ->and($mutationsContent)->toContain('store:');
+});
+
+it('only generates mutations for groups with mutation routes', function () {
+    $config = new TrpcConfig([
+        'outputs' => [
+            'routes' => true,
+            'types' => true,
+            'helpers' => true,
+            'url-builder' => true,
+            'fetch' => true,
+            'client' => true,
+            'index' => true,
+            'readme' => false,
+            'grouped-api' => true,
+            'inertia' => false,
+            'react-query' => true,
+            'queries' => true,
+            'mutations' => true,
+        ],
+    ]);
+
+    $generator = new TypeScriptGenerator($config, $this->stubRenderer);
+    $context = new GeneratorContext('/tmp/trpc-test/api', $config);
+
+    // Create routes - only GET routes for one group
+    $routes = new RouteCollection;
+    $routes->add(createTestRoute('readonly.index', 'get', 'api/readonly', 'readonly'));
+    $routes->add(createTestRoute('readonly.show', 'get', 'api/readonly/{id}', 'readonly', ['id']));
+    $routes->add(createTestRoute('writable.store', 'post', 'api/writable', 'writable'));
+
+    $result = $generator->generate($routes, $context);
+
+    // Should NOT have mutations file for readonly group
+    expect($result->files)->not->toHaveKey('readonly/mutations.ts')
+        // Should have mutations file for writable group
+        ->and($result->files)->toHaveKey('writable/mutations.ts');
+});
+
+it('exports mutations from group index when mutations are enabled', function () {
+    $config = new TrpcConfig([
+        'outputs' => [
+            'routes' => true,
+            'types' => true,
+            'helpers' => true,
+            'url-builder' => true,
+            'fetch' => true,
+            'client' => true,
+            'index' => true,
+            'readme' => false,
+            'grouped-api' => true,
+            'inertia' => false,
+            'react-query' => true,
+            'queries' => true,
+            'mutations' => true,
+        ],
+    ]);
+
+    $generator = new TypeScriptGenerator($config, $this->stubRenderer);
+    $context = new GeneratorContext('/tmp/trpc-test/api', $config);
+    $routes = createTestRouteCollection();
+
+    $result = $generator->generate($routes, $context);
+    $indexContent = $result->files['users/index.ts'];
+
+    expect($indexContent)->toContain('usersMutationKeys')
+        ->and($indexContent)->toContain('createUsersMutations')
+        ->and($indexContent)->toContain("from './mutations'");
+});
+
+it('exports createMutations from root index when mutations are enabled', function () {
+    $config = new TrpcConfig([
+        'outputs' => [
+            'routes' => true,
+            'types' => true,
+            'helpers' => true,
+            'url-builder' => true,
+            'fetch' => true,
+            'client' => true,
+            'index' => true,
+            'readme' => false,
+            'grouped-api' => true,
+            'inertia' => false,
+            'react-query' => true,
+            'queries' => true,
+            'mutations' => true,
+        ],
+    ]);
+
+    $generator = new TypeScriptGenerator($config, $this->stubRenderer);
+    $context = new GeneratorContext('/tmp/trpc-test/api', $config);
+    $routes = createTestRouteCollection();
+
+    $result = $generator->generate($routes, $context);
+    $indexContent = $result->files['index.ts'];
+
+    expect($indexContent)->toContain('createMutations')
+        ->and($indexContent)->toContain("from './mutations'");
+});
+
 // Helper functions
 function createTestRouteCollection(): RouteCollection
 {

@@ -29,9 +29,16 @@ export { createApi, type Api } from './api';
 @if($outputs['queries'] ?? false)
 
 // ============================================
-// Combined React Query Hooks
+// Combined React Query Queries
 // ============================================
 export { createQueries } from './queries';
+@endif
+@if($outputs['mutations'] ?? false)
+
+// ============================================
+// Combined React Query Mutations
+// ============================================
+export { createMutations } from './mutations';
 @endif
 
 // ============================================

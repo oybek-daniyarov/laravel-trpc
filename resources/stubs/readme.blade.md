@@ -1,9 +1,10 @@
 @php
     $timestamp = now()->toIso8601String();
-    $hasReactQuery = $config->shouldGenerateOutput('react-query') || $config->shouldGenerateOutput('queries');
+    $hasReactQuery = $config->shouldGenerateOutput('react-query') || $config->shouldGenerateOutput('queries') || $config->shouldGenerateOutput('mutations');
     $hasInertia = $config->shouldGenerateOutput('inertia');
     $hasGroupedApi = $config->shouldGenerateOutput('grouped-api');
     $hasQueries = $config->shouldGenerateOutput('queries');
+    $hasMutations = $config->shouldGenerateOutput('mutations');
 @endphp
 # Generated API Client
 
@@ -25,6 +26,9 @@
 @if($hasQueries)
 │   ├── queries.ts        # create{Group}Queries() factory
 @endif
+@if($hasMutations)
+│   ├── mutations.ts      # create{Group}Mutations() factory
+@endif
 │   └── index.ts          # Group barrel exports
 ├── routes.ts             # Aggregated route definitions
 @if($hasGroupedApi)
@@ -32,6 +36,9 @@
 @endif
 @if($hasQueries)
 ├── queries.ts            # createQueries() factory
+@endif
+@if($hasMutations)
+├── mutations.ts          # createMutations() factory
 @endif
 ├── url-builder.ts        # Type-safe URL builder
 ├── client.ts             # Method-specific client (client.get(), etc.)
@@ -294,6 +301,75 @@ const { data, fetchNextPage, hasNextPage } = useInfiniteQuery(
 // Invalidation patterns
 const queryClient = useQueryClient();
 queryClient.invalidateQueries({ queryKey: queries.users.keys.all });
+```
+
+@endif
+@if($hasMutations)
+
+### Resource-Based Mutations
+
+```typescript
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createApi, createMutations, createQueries } from './';
+
+// Configure API and mutations once
+const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+});
+const mutations = createMutations(api);
+const queries = createQueries(api);
+
+// Use in components
+function CreateUserButton() {
+    const queryClient = useQueryClient();
+
+    const createUser = useMutation({
+        ...mutations.users.store(),
+        onSuccess: () => {
+            // Invalidate users list after creating
+            queryClient.invalidateQueries({ queryKey: queries.users.keys.all });
+        },
+    });
+
+    // TypeScript enforces body is REQUIRED for store route
+    return (
+        <button
+            onClick={() => createUser.mutate({
+                body: { name: 'John', email: 'john@example.com' }
+            })}
+            disabled={createUser.isPending}
+        >
+            {createUser.isPending ? 'Creating...' : 'Create User'}
+        </button>
+    );
+}
+
+function DeleteUserButton({ userId }: { userId: number }) {
+    const queryClient = useQueryClient();
+
+    const deleteUser = useMutation({
+        ...mutations.users.destroy(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queries.users.keys.all });
+        },
+    });
+
+    // TypeScript allows NO body for destroy route (only path params)
+    return (
+        <button
+            onClick={() => deleteUser.mutate({ user: userId })}
+            disabled={deleteUser.isPending}
+        >
+            Delete
+        </button>
+    );
+}
+
+// Mutation keys for cache management
+mutations.users.keys.all                // ['users', 'mutation']
+mutations.users.keys.store()            // ['users.store']
+mutations.users.keys.update()           // ['users.update']
+mutations.users.keys.destroy()          // ['users.destroy']
 ```
 
 @endif

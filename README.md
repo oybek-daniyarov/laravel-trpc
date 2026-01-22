@@ -19,9 +19,7 @@ const api = createApi({
 const users = await api.users.index();
 const user = await api.users.show({ user: 1 });
 const newUser = await api.users.store({
-    name: 'John',
-    email: 'john@example.com',
-    password: 'secret'
+    body: { name: 'John', email: 'john@example.com', password: 'secret' }
 });
 ```
 
@@ -286,17 +284,15 @@ php artisan trpc:generate
 ### 4. Use in TypeScript
 
 ```typescript
-import { api } from '@/api';
+import { api } from '@/lib/api';
 
 // Full autocomplete and type safety
 const users = await api.users.index();
 const user = await api.users.show({ user: 1 });
 const newUser = await api.users.store({
-    name: 'John',
-    email: 'john@example.com',
-    password: 'secret'
+    body: { name: 'John', email: 'john@example.com', password: 'secret' }
 });
-await api.users.update({ user: 1 }, { name: 'Jane' });
+await api.users.update({ user: 1, body: { name: 'Jane' } });
 await api.users.destroy({ user: 1 });
 ```
 
@@ -315,10 +311,12 @@ resources/js/api/
 │   ├── routes.ts         # Group-specific route definitions
 │   ├── api.ts            # createUsersApi() factory
 │   ├── queries.ts        # createUsersQueries() factory (optional)
+│   ├── mutations.ts      # createUsersMutations() factory (optional)
 │   └── index.ts          # Group barrel exports
 ├── routes.ts             # Aggregated route definitions
 ├── api.ts                # createApi() factory combining all groups
 ├── queries.ts            # createQueries() factory (optional)
+├── mutations.ts          # createMutations() factory (optional)
 ├── url-builder.ts        # Type-safe URL builder
 ├── client.ts             # Method-specific client (client.get(), etc.)
 ├── inertia.ts            # Inertia.js helpers (optional)
@@ -407,6 +405,7 @@ return [
         'inertia' => true,
         'react-query' => false,
         'queries' => false,
+        'mutations' => false,
     ],
 ];
 ```
@@ -451,8 +450,8 @@ return [
 | Preset | Enables | Use Case |
 |--------|---------|----------|
 | `'inertia'` | Core files + Inertia helpers | Laravel + Inertia.js apps |
-| `'api'` | Core files + React Query | API-first / SPA with React Query |
-| `'spa'` | Core files + Inertia + React Query | Full-featured SPA |
+| `'api'` | Core files + React Query + Mutations | API-first / SPA with React Query |
+| `'spa'` | Core files + Inertia + React Query + Mutations | Full-featured SPA |
 | `null` | Custom (configure `outputs` manually) | Fine-grained control |
 
 Presets override the `outputs` array. To customize individual outputs, set `preset` to `null` and configure `outputs` directly.
@@ -644,7 +643,7 @@ public function store(CreateUserData $data)
 
 ```typescript
 import type { ErrorOf, ApiError } from '@/api';
-import { api } from '@/api';
+import { api } from '@/lib/api';
 
 // Get the error type for a specific route
 type CreateUserError = ErrorOf<'users.store'>;
@@ -653,7 +652,7 @@ type CreateUserError = ErrorOf<'users.store'>;
 // Handle errors with proper typing
 async function createUser(data: CreateUserData) {
     try {
-        return await api.users.store(data);
+        return await api.users.store({ body: data });
     } catch (e) {
         const error = e as ApiError;
 
@@ -678,7 +677,7 @@ import type { ErrorOf, ApiError } from '@/api';
 
 function CreateUserForm() {
     const mutation = useMutation({
-        mutationFn: (data) => api.users.store(data),
+        mutationFn: (data: CreateUserData) => api.users.store({ body: data }),
         onError: (error: ApiError) => {
             if (error.status === 422 && error.errors) {
                 // Show field-specific errors
@@ -726,6 +725,7 @@ Enable in config:
 'outputs' => [
     'react-query' => true,  // Core utilities (queryKey, createQueryOptions)
     'queries' => true,      // Resource-based query hooks (usersQueries, etc.)
+    'mutations' => true,    // Resource-based mutation hooks (usersMutations, etc.)
 ],
 ```
 
@@ -735,6 +735,31 @@ Enable in config:
 |------|-------------|
 | `react-query.ts` | Low-level utilities: `queryKey`, `createQueryOptions`, `createInfiniteQueryOptions`, `createMutationOptions` |
 | `queries.ts` | Resource-based query factories organized by API resource (e.g., `usersQueries`, `postsQueries`) |
+| `mutations.ts` | Resource-based mutation factories organized by API resource (e.g., `usersMutations`, `postsMutations`) |
+
+### Setup
+
+Before using queries and mutations, create configured instances in a setup file:
+
+```typescript
+// lib/api.ts
+import { createApi, createQueries, createMutations } from '@/api';
+
+const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+    headers: { 'X-App-Version': '1.0.0' },
+});
+
+export const queries = createQueries(api);
+export const mutations = createMutations(api);
+export { api };
+```
+
+Then import from your setup file in components:
+
+```typescript
+import { api, queries, mutations } from '@/lib/api';
+```
 
 ### Resource-Based Queries (`queries.ts`)
 
@@ -745,20 +770,20 @@ The `queries.ts` file generates query factories for each API resource, providing
 
 ```typescript
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { usersQueries, postsQueries } from '@/api';
+import { queries } from '@/lib/api';
 
 // Simple query
-const { data: user } = useQuery(usersQueries.show({ user: 1 }));
+const { data: user } = useQuery(queries.users.show({ user: 1 }));
 
 // Paginated endpoints automatically use infinite queries
 const { data, fetchNextPage, hasNextPage } = useInfiniteQuery(
-    usersQueries.index({ query: { per_page: 20 } })
+    queries.users.index({ query: { per_page: 20 } })
 );
 
 // Query keys for cache invalidation
 const queryClient = useQueryClient();
-queryClient.invalidateQueries({ queryKey: usersQueries.keys.all });        // ['users']
-queryClient.invalidateQueries({ queryKey: usersQueries.keys.show({ user: 1 }) }); // ['users', 'show', { user: 1 }]
+queryClient.invalidateQueries({ queryKey: queries.users.keys.all });        // ['users']
+queryClient.invalidateQueries({ queryKey: queries.users.keys.show({ user: 1 }) }); // ['users', 'show', { user: 1 }]
 ```
 
 ### Low-Level Utilities (`react-query.ts`)
@@ -790,17 +815,18 @@ mutation.mutate({ body: { name: 'John', email: 'john@example.com' } });
 
 ```typescript
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersQueries, api } from '@/api';
+import { queries, api } from '@/lib/api';
 
 function UserProfile({ userId }: { userId: number }) {
-    const { data, isLoading } = useQuery(usersQueries.show({ user: userId }));
+    const { data, isLoading } = useQuery(queries.users.show({ user: userId }));
     const queryClient = useQueryClient();
 
     const updateUser = useMutation({
-        mutationFn: (data) => api.users.update({ user: userId }, data),
+        mutationFn: (data: { name: string }) =>
+            api.users.update({ user: userId, body: data }),
         onSuccess: () => {
             queryClient.invalidateQueries({
-                queryKey: usersQueries.keys.show({ user: userId })
+                queryKey: queries.users.keys.show({ user: userId })
             });
         },
     });
@@ -824,11 +850,11 @@ Paginated endpoints automatically generate `infiniteQueryOptions`:
 
 ```typescript
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { usersQueries } from '@/api';
+import { queries } from '@/lib/api';
 
 function UserList() {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
-        usersQueries.index({ query: { per_page: 20 } })
+        queries.users.index({ query: { per_page: 20 } })
     );
 
     return (
@@ -847,6 +873,68 @@ function UserList() {
         </div>
     );
 }
+```
+
+### Resource-Based Mutations (`mutations.ts`)
+
+The `mutations.ts` file generates type-safe mutation factories for POST, PUT, PATCH, and DELETE endpoints:
+
+```typescript
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createApi, createMutations, createQueries } from '@/api';
+
+const api = createApi({ baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '' });
+const mutations = createMutations(api);
+const queries = createQueries(api);
+
+function CreateUserButton() {
+    const queryClient = useQueryClient();
+
+    const createUser = useMutation({
+        ...mutations.users.store(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queries.users.keys.all });
+        },
+    });
+
+    // TypeScript enforces body is REQUIRED for store route
+    return (
+        <button
+            onClick={() => createUser.mutate({
+                body: { name: 'John', email: 'john@example.com' }
+            })}
+            disabled={createUser.isPending}
+        >
+            Create User
+        </button>
+    );
+}
+
+function DeleteUserButton({ userId }: { userId: number }) {
+    const queryClient = useQueryClient();
+
+    const deleteUser = useMutation({
+        ...mutations.users.destroy(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queries.users.keys.all });
+        },
+    });
+
+    // TypeScript allows NO body for destroy route (only path params)
+    return (
+        <button onClick={() => deleteUser.mutate({ user: userId })}>
+            Delete
+        </button>
+    );
+}
+```
+
+**Mutation keys for cache management:**
+```typescript
+mutations.users.keys.all      // ['users', 'mutation']
+mutations.users.keys.store()  // ['users.store']
+mutations.users.keys.update() // ['users.update']
+mutations.users.keys.destroy() // ['users.destroy']
 ```
 
 ## Inertia.js Integration
@@ -1019,8 +1107,8 @@ export async function GET(request: NextRequest) {
 Use `createQueries` to bind queries to a configured API instance:
 
 ```typescript
-// lib/queries.ts
-import { createApi, createQueries } from '@/api';
+// lib/api.ts
+import { createApi, createQueries, createMutations } from '@/api';
 
 const api = createApi({
     baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
@@ -1028,6 +1116,7 @@ const api = createApi({
 });
 
 export const queries = createQueries(api);
+export const mutations = createMutations(api);
 export { api };
 ```
 
@@ -1036,7 +1125,7 @@ export { api };
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queries, api } from '@/lib/queries';
+import { queries, api } from '@/lib/api';
 
 export function UserProfile({ userId }: { userId: number }) {
     const queryClient = useQueryClient();
@@ -1047,7 +1136,7 @@ export function UserProfile({ userId }: { userId: number }) {
 
     const updateMutation = useMutation({
         mutationFn: (data: UpdateUserData) =>
-            api.users.update({ user: userId }, { body: data }),
+            api.users.update({ user: userId, body: data }),
         onSuccess: () => {
             queryClient.invalidateQueries({
                 queryKey: queries.users.keys.show({ user: userId })

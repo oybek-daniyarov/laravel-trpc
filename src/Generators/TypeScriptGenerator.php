@@ -120,6 +120,11 @@ final class TypeScriptGenerator implements Generator
         $getInterfaceName = fn (string $name): string => $this->routeNameToInterfaceName($name);
         $hasQueries = ($outputs['queries'] ?? false) && count(array_filter($routes, fn ($r) => $r['method'] === 'get')) > 0;
 
+        // Check for mutation routes (POST, PUT, PATCH, DELETE)
+        $mutationMethods = ['post', 'put', 'patch', 'delete'];
+        $hasMutations = ($outputs['mutations'] ?? false) &&
+            count(array_filter($routes, fn ($r) => in_array($r['method'], $mutationMethods))) > 0;
+
         // Routes file - always generated
         if ($outputs['routes'] ?? true) {
             $files["{$group}/routes.ts"] = $this->stubRenderer->render('group.routes', [
@@ -148,6 +153,15 @@ final class TypeScriptGenerator implements Generator
             ]);
         }
 
+        // Mutations file (only for groups with mutation routes)
+        if ($hasMutations) {
+            $files["{$group}/mutations.ts"] = $this->stubRenderer->render('group.mutations', [
+                'group' => $group,
+                'routes' => $routes,
+                'timestamp' => $timestamp,
+            ]);
+        }
+
         // Group index
         if ($outputs['index'] ?? true) {
             $files["{$group}/index.ts"] = $this->stubRenderer->render('group.index', [
@@ -155,6 +169,7 @@ final class TypeScriptGenerator implements Generator
                 'routes' => $routes,
                 'getInterfaceName' => $getInterfaceName,
                 'hasQueries' => $hasQueries,
+                'hasMutations' => $hasMutations,
                 'timestamp' => $timestamp,
             ]);
         }
@@ -197,6 +212,14 @@ final class TypeScriptGenerator implements Generator
         // Combined queries factory
         if ($outputs['queries'] ?? false) {
             $files['queries.ts'] = $this->stubRenderer->render('root.queries', [
+                'groupedRoutes' => $groupedRoutes,
+                'timestamp' => $timestamp,
+            ]);
+        }
+
+        // Combined mutations factory
+        if ($outputs['mutations'] ?? false) {
+            $files['mutations.ts'] = $this->stubRenderer->render('root.mutations', [
                 'groupedRoutes' => $groupedRoutes,
                 'timestamp' => $timestamp,
             ]);
