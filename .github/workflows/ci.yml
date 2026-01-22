@@ -84,13 +84,22 @@ jobs:
   frontend-checks:
     runs-on: ubuntu-latest
     name: Frontend Checks
-    defaults:
-      run:
-        working-directory: workbench
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Generate TypeScript files
+        run: vendor/bin/testbench trpc:generate --force
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -99,17 +108,22 @@ jobs:
           cache: 'npm'
           cache-dependency-path: workbench/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Node dependencies
+        working-directory: workbench
         run: npm ci
 
       - name: Lint
+        working-directory: workbench
         run: npm run lint
 
       - name: Format check
+        working-directory: workbench
         run: npm run format:check
 
       - name: Type check
+        working-directory: workbench
         run: npm run typecheck
 
       - name: Run tests
+        working-directory: workbench
         run: npm test
