@@ -5,55 +5,44 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [0.1.7-beta] - 2025-01-22
+## [0.1.8-beta] - 2026-01-22
 
 ### Changed
-- Restructured README to lead with value proposition and quick example
-- Added "What This Is", "Status", "Output Contract", "Known Limitations", "Troubleshooting", and "Versioning" sections
-- Reframed Backstory section to be more concise
-- Expanded composer.json keywords for better Packagist discoverability
 
-### Added
-- UPGRADE.md with general upgrade guidance
-- Populated CHANGELOG.md with version history
+- Add 0.1.7-beta to CHANGELOG
+- Auto-generate CHANGELOG.md on release using git-cliff
 
-## [0.1.6-beta] - 2025-01-22
-
-### Added
-- `--base-url` option for `trpc:generate` command to set default base URL in generated client
-
-## [0.1.5-beta] - 2025-01-22
+## [0.1.7-beta] - 2026-01-22
 
 ### Changed
-- Simplified release workflow using GitHub's release notes
 
-## [0.1.4-beta] - 2025-01-22
+- Add release.yml for auto-generated release notes
+- Improve README structure and add CHANGELOG/UPGRADE guides
+
+## [0.1.6-beta] - 2026-01-22
+
+### Added
+
+- Add --base-url option to trpc:generate command
+
+## [0.1.5-beta] - 2026-01-22
 
 ### Changed
-- Updated minimum PHP version to 8.3
 
-## [0.1.3-beta] - 2025-01-22
+- Simplify release workflow using GitHub's release notes
 
-### Added
-- GitHub Actions for CI and releases
+## [0.1.4-beta] - 2026-01-22
 
-## [0.1.2-beta] - 2025-01-22
+### Changed
 
-### Fixed
-- Critical bugs in grouped API generation
+- Update minimum PHP version to 8.3
 
-## [0.1.1-beta] - 2025-01-22
+## [0.1.3-beta] - 2026-01-22
 
-### Added
-- Autocomplete demo GIF to README
+### Changed
 
-## [0.1.0-beta] - 2025-01-22
+- Add GitHub Actions for CI and releases
 
-### Added
-- Initial beta release
-- TypeScript client generation from Laravel routes
-- React Query integration
-- Inertia.js helpers
-- Postman collection export
+## [0.1.0-beta] - 2026-01-21
+
+
