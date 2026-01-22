@@ -9,7 +9,11 @@
 ## Quick Example
 
 ```typescript
-import { api } from '@/api';
+import { createApi } from '@/api';
+
+const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL!,
+});
 
 // Full autocomplete and type safety
 const users = await api.users.index();
@@ -298,37 +302,66 @@ await api.users.destroy({ user: 1 });
 
 ## Generated Files
 
-| File | Description |
-|------|-------------|
-| `types.ts` | Core types (HttpMethod, ApiError, PaginatedResponse, ValidationError) |
-| `routes.ts` | Route definitions, RouteTypeMap, method-filtered route types |
-| `helpers.ts` | Type helpers (RequestOf, ResponseOf, ParamsOf, QueryOf) |
-| `url-builder.ts` | Type-safe URL builder with query string support |
-| `fetch.ts` | Low-level fetch wrapper with full type safety |
-| `client.ts` | Configurable API client factory with method-specific calls |
-| `api.ts` | Grouped API client (`api.users.show()`) |
-| `queries.ts` | React Query hooks organized by resource |
-| `react-query.ts` | React Query utilities (queryKey, createQueryOptions) |
-| `inertia.ts` | Inertia.js helpers (route, visit, formAction) |
-| `index.ts` | Barrel exports |
-| `README.md` | Generated documentation |
-
-## Output Contract
-
-The generator produces these files with stable names:
+The generator produces a tree-shakeable folder structure:
 
 ```
 resources/js/api/
-├── types.ts          # Core types (ApiError, PaginatedResponse, etc.)
-├── routes.ts         # Route definitions and RouteTypeMap
-├── helpers.ts        # Type helpers (RequestOf, ResponseOf, etc.)
+├── core/                 # Core infrastructure
+│   ├── types.ts          # HttpMethod, ApiError, PaginatedResponse, ValidationError
+│   ├── fetch.ts          # Low-level fetch wrapper with full type safety
+│   ├── helpers.ts        # Type helpers (RequestOf, ResponseOf, ParamsOf, QueryOf)
+│   └── index.ts          # Core barrel exports
+├── {group}/              # Per-resource folders (users/, posts/, etc.)
+│   ├── routes.ts         # Group-specific route definitions
+│   ├── api.ts            # createUsersApi() factory
+│   ├── queries.ts        # createUsersQueries() factory (optional)
+│   └── index.ts          # Group barrel exports
+├── routes.ts             # Aggregated route definitions
+├── api.ts                # createApi() factory combining all groups
+├── queries.ts            # createQueries() factory (optional)
+├── url-builder.ts        # Type-safe URL builder
+├── client.ts             # Method-specific client (client.get(), etc.)
+├── inertia.ts            # Inertia.js helpers (optional)
+├── react-query.ts        # React Query utilities (optional)
+├── index.ts              # Main barrel exports
+└── README.md             # Generated documentation
+```
+
+### Tree-Shaking
+
+Import only what you need for optimal bundle size:
+
+```typescript
+// Per-resource import (tree-shakeable) - only imports users code
+import { createUsersApi } from '@/api/users';
+
+// Or combined API - imports all resources
+import { createApi } from '@/api';
+```
+
+## Output Contract
+
+The generator produces a stable folder structure:
+
+```
+resources/js/api/
+├── core/             # Core infrastructure (always generated)
+│   ├── types.ts      # ApiError, PaginatedResponse, ValidationError
+│   ├── fetch.ts      # Low-level fetch wrapper
+│   ├── helpers.ts    # Type helpers (RequestOf, ResponseOf, etc.)
+│   └── index.ts      # Core exports
+├── {group}/          # Per-resource folders (e.g., users/, posts/)
+│   ├── routes.ts     # Route definitions for this group
+│   ├── api.ts        # createUsersApi() factory
+│   ├── queries.ts    # createUsersQueries() (if react-query enabled)
+│   └── index.ts      # Group exports
+├── routes.ts         # Aggregated routes from all groups
+├── api.ts            # createApi() factory
+├── queries.ts        # createQueries() factory (optional)
 ├── url-builder.ts    # Type-safe URL builder
-├── fetch.ts          # Low-level fetch wrapper
-├── client.ts         # Configurable API client factory
-├── api.ts            # Grouped API client (api.users.show())
+├── client.ts         # Method-specific client
 ├── inertia.ts        # Inertia.js helpers (optional)
 ├── react-query.ts    # React Query utilities (optional)
-├── queries.ts        # Resource-based query hooks (optional)
 ├── index.ts          # Barrel exports
 └── README.md         # Generated documentation
 ```
@@ -843,59 +876,195 @@ function CreateUserForm() {
 
 ## API Client Configuration
 
-### Default Usage
+### Basic Setup
 
-The default `api` object uses relative URLs and works with Laravel's session/cookie authentication:
-
-```typescript
-import { api } from '@/api';
-
-const users = await api.users.index();
-```
-
-### Custom Base URL
-
-Use `createApi` to point to a different API URL (staging, production, external API):
+Create a configured API instance and export it for use throughout your app:
 
 ```typescript
+// lib/api.ts
 import { createApi } from '@/api';
 
-// Configure for your environment
-const api = createApi({
-    baseUrl: import.meta.env.VITE_API_URL,  // Vite
-    // baseUrl: process.env.NEXT_PUBLIC_API_URL,  // Next.js
-    headers: {
-        Authorization: `Bearer ${token}`,
-    },
-    onError: (error) => {
-        if (error.status === 401) {
-            window.location.href = '/login';
-        }
-    },
+export const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+    headers: { 'X-App-Version': '1.0.0' },
 });
-
-const users = await api.users.index();
 ```
 
-### Server-Side Usage (Next.js)
+### Usage
+
+```typescript
+import { api } from '@/lib/api';
+
+// Simple usage
+const users = await api.users.index();
+
+// With custom headers (per-request)
+const users = await api.users.index({
+    headers: { 'X-Custom': 'value' },
+});
+
+// With path params
+const user = await api.users.show({ user: 1 });
+
+// With path params and per-request options
+const user = await api.users.show({ user: 1 }, {
+    headers: { 'X-Request-Id': 'abc123' },
+});
+
+// With body (POST/PUT/PATCH)
+const newUser = await api.users.store({ body: { name: 'John', email: 'john@example.com' } });
+```
+
+### Per-Request Options
+
+All API methods accept an optional `RequestOptions` object as the last parameter:
+
+```typescript
+interface RequestOptions {
+    headers?: Record<string, string>;  // Custom headers for this request
+    next?: NextCacheOptions;           // Next.js cache configuration
+    mobile?: MobileOptions;            // Mobile/React Native options
+    signal?: AbortSignal;              // Abort signal
+}
+```
+
+### Next.js App Router
+
+#### Server Components
 
 ```typescript
 // lib/api.server.ts
 import { createApi } from '@/api';
+import { cookies } from 'next/headers';
+import { cache } from 'react';
 
-export const serverApi = createApi({
-    baseUrl: process.env.API_URL!,
-    headers: {
-        Authorization: `Bearer ${process.env.API_TOKEN}`,
-    },
+// Cache per request (React cache for deduplication)
+export const getServerApi = cache(async () => {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+
+    return createApi({
+        baseUrl: process.env.API_URL!,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
 });
+```
 
+```typescript
 // app/users/page.tsx
-import { serverApi } from '@/lib/api.server';
+import { getServerApi } from '@/lib/api.server';
 
 export default async function UsersPage() {
-    const users = await serverApi.users.index();
+    const api = await getServerApi();
+
+    // With Next.js cache tags for revalidation
+    const users = await api.users.index({
+        next: { tags: ['users'], revalidate: 60 }
+    });
+
     return <UserList users={users.data} />;
+}
+```
+
+#### Server Actions
+
+```typescript
+// app/actions/users.ts
+'use server';
+
+import { getServerApi } from '@/lib/api.server';
+import { revalidateTag } from 'next/cache';
+
+export async function createUser(data: CreateUserData) {
+    const api = await getServerApi();
+    const user = await api.users.store({ body: data });
+
+    revalidateTag('users');
+    return user;
+}
+
+export async function deleteUser(userId: number) {
+    const api = await getServerApi();
+    await api.users.destroy({ user: userId });
+
+    revalidateTag('users');
+    revalidateTag(`user-${userId}`);
+}
+```
+
+#### Route Handlers
+
+```typescript
+// app/api/users/route.ts
+import { createApi } from '@/api';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+    const api = createApi({
+        baseUrl: process.env.API_URL!,
+        headers: {
+            Authorization: request.headers.get('Authorization') ?? '',
+        },
+    });
+
+    const users = await api.users.index();
+    return NextResponse.json(users);
+}
+```
+
+### React Query Integration
+
+#### With Configured API (Recommended)
+
+Use `createQueries` to bind queries to a configured API instance:
+
+```typescript
+// lib/queries.ts
+import { createApi, createQueries } from '@/api';
+
+const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+    headers: { 'X-App-Version': '1.0.0' },
+});
+
+export const queries = createQueries(api);
+export { api };
+```
+
+```typescript
+// components/UserProfile.tsx
+'use client';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queries, api } from '@/lib/queries';
+
+export function UserProfile({ userId }: { userId: number }) {
+    const queryClient = useQueryClient();
+
+    const { data: user, isLoading } = useQuery(
+        queries.users.show({ user: userId })
+    );
+
+    const updateMutation = useMutation({
+        mutationFn: (data: UpdateUserData) =>
+            api.users.update({ user: userId }, { body: data }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: queries.users.keys.show({ user: userId })
+            });
+        },
+    });
+
+    if (isLoading) return <div>Loading...</div>;
+
+    return (
+        <div>
+            <h1>{user?.name}</h1>
+            <button onClick={() => updateMutation.mutate({ name: 'New Name' })}>
+                Update
+            </button>
+        </div>
+    );
 }
 ```
 

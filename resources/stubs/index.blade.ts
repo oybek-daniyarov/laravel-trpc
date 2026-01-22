@@ -64,7 +64,7 @@ export type {
 // API Client (for SPA/API usage)
 // ============================================
 export { createApiClient } from './client';
-export type { RequestOptions, ApiClient } from './client';
+export type { ApiClient } from './client';
 
 // Fetch function
 export { fetchApi } from './fetch';
@@ -72,6 +72,7 @@ export type {
     NextCacheOptions,
     MobileOptions,
     FetchOptions,
+    RequestOptions,
     ApiClientConfig,
     RequestConfig,
 } from './fetch';

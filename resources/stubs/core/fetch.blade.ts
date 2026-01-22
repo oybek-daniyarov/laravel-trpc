@@ -1,12 +1,6 @@
 @include('trpc::partials.file-header', ['description' => 'Core Fetch Function'])
 
 import type { ApiError } from './types';
-import { routes, type RouteName } from './routes';
-import type { RequestOf, ResponseOf, ParamsOf, QueryParams } from './helpers';
-import { url as buildUrl, type UrlOptions } from './url-builder';
-
-/** Default base URL for API requests */
-export const DEFAULT_BASE_URL = '{{ $baseUrl ?? '' }}';
 
 /** Next.js cache/revalidation options */
 export interface NextCacheOptions {
@@ -34,6 +28,18 @@ export interface FetchOptions {
     readonly signal?: AbortSignal;
 }
 
+/** Per-request options for API calls */
+export interface RequestOptions {
+    /** Custom headers for this request */
+    readonly headers?: Readonly<Record<string, string>>;
+    /** Next.js cache configuration */
+    readonly next?: NextCacheOptions;
+    /** Mobile/React Native specific options */
+    readonly mobile?: MobileOptions;
+    /** Abort signal */
+    readonly signal?: AbortSignal;
+}
+
 /** CSRF configuration options */
 export interface CsrfConfig {
     /** Static CSRF token to use */
@@ -46,7 +52,7 @@ export interface CsrfConfig {
 
 /** Configuration for the API client */
 export interface ApiClientConfig {
-    readonly baseUrl?: string;
+    readonly baseUrl: string;
     readonly headers?: Readonly<Record<string, string>>;
     readonly onRequest?: (url: string, init: RequestInit) => RequestInit | Promise<RequestInit>;
     readonly onResponse?: <T>(response: Response, data: T) => T | Promise<T>;
@@ -56,10 +62,11 @@ export interface ApiClientConfig {
     readonly csrf?: CsrfConfig;
 }
 
-/** Request configuration for API calls */
-export interface RequestConfig<T extends RouteName> extends FetchOptions {
-    readonly body?: RequestOf<T>;
-    readonly query?: QueryParams<T>;
+/** Route definition for type-safe API calls */
+export interface RouteDefinition {
+    readonly path: string;
+    readonly method: 'get' | 'post' | 'put' | 'patch' | 'delete';
+    readonly params: readonly string[];
 }
 
 /**
@@ -113,23 +120,60 @@ function isRetryableError(error: unknown): boolean {
 }
 
 /**
+ * Build URL with path parameters and query string.
+ */
+export function buildUrl(
+    route: RouteDefinition,
+    path: Record<string, string | number> | null,
+    query?: Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>
+): string {
+    let result = route.path;
+
+    if (path && typeof path === 'object') {
+        for (const [key, value] of Object.entries(path)) {
+            result = result.replace(`{${key}}`, encodeURIComponent(String(value)));
+        }
+    }
+
+    if (query) {
+        const searchParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(query)) {
+            if (value === null || value === undefined) continue;
+            if (Array.isArray(value)) {
+                for (const v of value) {
+                    searchParams.append(`${key}[]`, String(v));
+                }
+            } else {
+                searchParams.append(key, String(value));
+            }
+        }
+        const queryString = searchParams.toString();
+        if (queryString) {
+            result += '?' + queryString;
+        }
+    }
+
+    return result;
+}
+
+/**
  * Low-level fetch function for direct use or integration with any library.
  */
-export async function fetchApi<T extends RouteName>(
-    name: T,
+export async function fetchApi<TResponse>(
+    route: RouteDefinition,
     options: {
-        path?: ParamsOf<T> | null;
-        config?: RequestConfig<T>;
-        clientConfig?: ApiClientConfig;
-    } = {}
-): Promise<ResponseOf<T>> {
-    const { path, config, clientConfig = {} } = options;
-    const route = routes[name];
-    const baseUrl = clientConfig.baseUrl ?? DEFAULT_BASE_URL;
-    const url = baseUrl + buildUrl(name, path as ParamsOf<T>, { query: config?.query as UrlOptions['query'] });
+        path?: Record<string, string | number> | null;
+        body?: unknown;
+        query?: Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
+        clientConfig: ApiClientConfig;
+        requestOptions?: RequestOptions;
+    }
+): Promise<TResponse> {
+    const { path, body, query, clientConfig, requestOptions = {} } = options;
+    const url = clientConfig.baseUrl + buildUrl(route, path ?? null, query);
 
-    const nextOptions = { ...clientConfig.next, ...config?.next };
-    const mobileOptions = { ...clientConfig.mobile, ...config?.mobile };
+    const nextOptions = { ...clientConfig.next, ...requestOptions.next };
+    const mobileOptions = { ...clientConfig.mobile, ...requestOptions.mobile };
     const csrfToken = getCsrfToken(clientConfig.csrf);
 
     let init: RequestInit = {
@@ -139,14 +183,14 @@ export async function fetchApi<T extends RouteName>(
             'Accept': 'application/json',
             ...(csrfToken && { [clientConfig.csrf?.header ?? 'X-XSRF-TOKEN']: csrfToken }),
             ...clientConfig.headers,
-            ...config?.headers,
+            ...requestOptions.headers,
         },
         ...(nextOptions.cache && { cache: nextOptions.cache }),
-        ...(config?.signal && { signal: config.signal }),
+        ...(requestOptions.signal && { signal: requestOptions.signal }),
     };
 
-    if (config?.body !== undefined && route.method !== 'get') {
-        init.body = JSON.stringify(config.body);
+    if (body !== undefined && route.method !== 'get') {
+        init.body = JSON.stringify(body);
     }
 
     if (clientConfig.onRequest) {
@@ -205,9 +249,9 @@ export async function fetchApi<T extends RouteName>(
             // Handle empty responses (204 No Content)
             if (response.status === 204 || response.headers.get('content-length') === '0') {
                 if (clientConfig.onResponse) {
-                    return await clientConfig.onResponse(response, undefined as ResponseOf<T>);
+                    return await clientConfig.onResponse(response, undefined as TResponse);
                 }
-                return undefined as ResponseOf<T>;
+                return undefined as TResponse;
             }
 
             let data = await response.json();
@@ -216,7 +260,7 @@ export async function fetchApi<T extends RouteName>(
                 data = await clientConfig.onResponse(response, data);
             }
 
-            return data as ResponseOf<T>;
+            return data as TResponse;
         } catch (error) {
             if (timeoutId) clearTimeout(timeoutId);
 

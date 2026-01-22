@@ -12,27 +12,49 @@
 
 ## Generated Files
 
-| File | Description |
-|------|-------------|
-| `types.ts` | Core types (HttpMethod, ApiError, PaginatedResponse, ValidationError) |
-| `routes.ts` | Route definitions, RouteTypeMap, method-filtered route types |
-| `helpers.ts` | Type helpers (RequestOf, ResponseOf, ParamsOf, QueryOf) |
-| `url-builder.ts` | Type-safe URL builder with query string support |
-| `fetch.ts` | Low-level fetch wrapper with full type safety |
-| `client.ts` | Configurable API client factory with method-specific calls |
-@if($hasGroupedApi)
-| `api.ts` | Grouped API client (`api.users.show()`) |
+```
+./
+├── core/                 # Core infrastructure
+│   ├── types.ts          # HttpMethod, ApiError, PaginatedResponse, ValidationError
+│   ├── fetch.ts          # Low-level fetch wrapper with full type safety
+│   ├── helpers.ts        # Type helpers (RequestOf, ResponseOf, ParamsOf, QueryOf)
+│   └── index.ts          # Core barrel exports
+├── {group}/              # Per-resource folders (users/, posts/, etc.)
+│   ├── routes.ts         # Group-specific route definitions
+│   ├── api.ts            # create{Group}Api() factory
+@if($hasQueries)
+│   ├── queries.ts        # create{Group}Queries() factory
 @endif
-@if($hasReactQuery)
-| `react-query.ts` | React Query utilities (queryKey, createQueryOptions) |
+│   └── index.ts          # Group barrel exports
+├── routes.ts             # Aggregated route definitions
+@if($hasGroupedApi)
+├── api.ts                # createApi() factory combining all groups
 @endif
 @if($hasQueries)
-| `queries.ts` | React Query hooks organized by resource |
+├── queries.ts            # createQueries() factory
+@endif
+├── url-builder.ts        # Type-safe URL builder
+├── client.ts             # Method-specific client (client.get(), etc.)
+@if($hasReactQuery)
+├── react-query.ts        # React Query utilities (queryKey, createQueryOptions)
 @endif
 @if($hasInertia)
-| `inertia.ts` | Inertia.js helpers (route, visit, formAction) |
+├── inertia.ts            # Inertia.js helpers (route, visit, formAction)
 @endif
-| `index.ts` | Barrel exports for easy importing |
+└── index.ts              # Main barrel exports
+```
+
+### Tree-Shaking
+
+Import only what you need for optimal bundle size:
+
+```typescript
+// Per-resource import (tree-shakeable) - only imports users code
+import { createUsersApi } from './users';
+
+// Or combined API - imports all resources
+import { createApi } from './';
+```
 
 ## Quick Start
 @if($hasGroupedApi)
@@ -40,26 +62,33 @@
 ### Grouped API (Recommended)
 
 ```typescript
-import { api } from './api';
+import { createApi } from './';
+
+// Configure once
+const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+    headers: { 'X-App-Version': '1.0.0' },
+});
 
 // GET requests
 const users = await api.users.index();
 const user = await api.users.show({ user: 1 });
 
 // POST requests
-const newUser = await api.users.store({
-    name: 'John',
-    email: 'john@example.com'
-});
+const newUser = await api.users.store({ body: { name: 'John', email: 'john@example.com' } });
 
 // PUT/PATCH requests
-await api.users.update({ user: 1 }, { name: 'Jane' });
+await api.users.update({ user: 1 }, { body: { name: 'Jane' } });
 
 // DELETE requests
 await api.users.destroy({ user: 1 });
 
 // With query parameters
 const filtered = await api.users.index({ query: { page: 2, per_page: 20 } });
+
+// With per-request options (headers, Next.js cache, etc.)
+const cached = await api.users.index({ next: { tags: ['users'], revalidate: 60 } });
+const user = await api.users.show({ user: 1 }, { headers: { 'X-Custom': 'value' } });
 ```
 @endif
 
@@ -237,29 +266,36 @@ function UserProfile({ userId }: { userId: number }) {
 
 ### Resource-Based Queries
 
-```typescript
-import { useQuery, useMutation, useInfiniteQuery } from '@tanstack/react-query';
-import { usersQueries } from './queries';
+#### With Configured API (Recommended)
 
-// Pre-configured query options by resource
-const { data } = useQuery(usersQueries.index());
-const { data: user } = useQuery(usersQueries.show({ user: 1 }));
+```typescript
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { createApi, createQueries } from './';
+
+// Configure API and queries once
+const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+});
+const queries = createQueries(api);
+
+// Use in components
+const { data } = useQuery(queries.users.index());
+const { data: user } = useQuery(queries.users.show({ user: 1 }));
 
 // Query keys for cache management
-usersQueries.keys.all           // ['users']
-usersQueries.keys.index({})     // ['users', 'index', {}]
-usersQueries.keys.show({ user: 1 }) // ['users', 'show', { user: 1 }]
+queries.users.keys.all              // ['users']
+queries.users.keys.show({ user: 1 }) // ['users.show', { user: 1 }]
 
 // Infinite queries for pagination
-const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-} = useInfiniteQuery(usersQueries.index({ query: { per_page: 20 } }));
+const { data, fetchNextPage, hasNextPage } = useInfiniteQuery(
+    queries.users.index({ query: { per_page: 20 } })
+);
 
 // Invalidation patterns
-queryClient.invalidateQueries({ queryKey: usersQueries.keys.all });
+const queryClient = useQueryClient();
+queryClient.invalidateQueries({ queryKey: queries.users.keys.all });
 ```
+
 @endif
 @if($hasInertia)
 
@@ -326,22 +362,14 @@ function isValidationError(error: unknown): error is ValidationError {
 
 ## Configuration
 
-### Default Usage
+### Basic Setup
 
 ```typescript
-import { api } from './api';
+// lib/api.ts
+import { createApi } from './';
 
-// Uses relative URLs, works with Laravel session/cookie auth
-const users = await api.users.index();
-```
-
-### Custom Base URL
-
-```typescript
-import { createApi } from './api';
-
-const api = createApi({
-    baseUrl: import.meta.env.VITE_API_URL,  // or process.env.NEXT_PUBLIC_API_URL
+export const api = createApi({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
     headers: {
         Authorization: `Bearer ${token}`,
     },
@@ -351,8 +379,40 @@ const api = createApi({
         }
     },
 });
+```
 
-const users = await api.users.index();
+### Per-Request Options
+
+All API methods accept optional per-request options as the last parameter:
+
+```typescript
+// Custom headers for this request
+const users = await api.users.index({ headers: { 'X-Custom': 'value' } });
+
+// Next.js cache configuration
+const users = await api.users.index({ next: { tags: ['users'], revalidate: 60 } });
+
+// With path params and options
+const user = await api.users.show({ user: 1 }, { next: { tags: ['user-1'] } });
+```
+
+### Next.js Server Components
+
+```typescript
+// lib/api.server.ts
+import { createApi } from '@/api';
+import { cookies } from 'next/headers';
+import { cache } from 'react';
+
+export const getServerApi = cache(async () => {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+
+    return createApi({
+        baseUrl: process.env.API_URL!,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+});
 ```
 
 ## Regenerate

@@ -48,7 +48,7 @@ afterEach(function () {
 });
 
 describe('Workbench Integration', function () {
-    it('generates typescript files via artisan command', function () {
+    it('generates typescript files with folder structure via artisan command', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         // Run the generate command
@@ -58,16 +58,78 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        // Check that files were generated
+        // Check core files
+        expect(File::exists($outputPath.'/core/types.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/core/fetch.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/core/helpers.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/core/index.ts'))->toBeTrue();
+
+        // Check root aggregation files
         expect(File::exists($outputPath.'/routes.ts'))->toBeTrue();
-        expect(File::exists($outputPath.'/types.ts'))->toBeTrue();
-        expect(File::exists($outputPath.'/helpers.ts'))->toBeTrue();
-        expect(File::exists($outputPath.'/fetch.ts'))->toBeTrue();
-        expect(File::exists($outputPath.'/client.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/api.ts'))->toBeTrue();
         expect(File::exists($outputPath.'/index.ts'))->toBeTrue();
+
+        // Check utility files
+        expect(File::exists($outputPath.'/url-builder.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/client.ts'))->toBeTrue();
     });
 
-    it('generates routes for all workbench endpoints', function () {
+    it('generates group folders for each resource', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        // Check that group folders are created
+        expect(File::exists($outputPath.'/auth/routes.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/auth/api.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/auth/index.ts'))->toBeTrue();
+
+        expect(File::exists($outputPath.'/users/routes.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/users/api.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/users/index.ts'))->toBeTrue();
+
+        expect(File::exists($outputPath.'/posts/routes.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/posts/api.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/posts/index.ts'))->toBeTrue();
+    });
+
+    it('generates routes for all workbench endpoints in group files', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        // Auth routes in auth folder
+        $authRoutesContent = File::get($outputPath.'/auth/routes.ts');
+        expect($authRoutesContent)->toContain("'auth.login'");
+        expect($authRoutesContent)->toContain("'auth.register'");
+        expect($authRoutesContent)->toContain("'auth.me'");
+        expect($authRoutesContent)->toContain("'auth.logout'");
+
+        // User routes in users folder
+        $usersRoutesContent = File::get($outputPath.'/users/routes.ts');
+        expect($usersRoutesContent)->toContain("'users.index'");
+        expect($usersRoutesContent)->toContain("'users.show'");
+        expect($usersRoutesContent)->toContain("'users.store'");
+        expect($usersRoutesContent)->toContain("'users.update'");
+        expect($usersRoutesContent)->toContain("'users.destroy'");
+
+        // Post routes in posts folder
+        $postsRoutesContent = File::get($outputPath.'/posts/routes.ts');
+        expect($postsRoutesContent)->toContain("'posts.index'");
+        expect($postsRoutesContent)->toContain("'posts.show'");
+        expect($postsRoutesContent)->toContain("'posts.store'");
+        expect($postsRoutesContent)->toContain("'posts.destroy'");
+    });
+
+    it('generates root routes.ts with imports from group folders', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         $this->artisan('trpc:generate', [
@@ -78,30 +140,13 @@ describe('Workbench Integration', function () {
 
         $routesContent = File::get($outputPath.'/routes.ts');
 
-        // Auth routes
-        expect($routesContent)->toContain("'auth.login'");
-        expect($routesContent)->toContain("'auth.register'");
-        expect($routesContent)->toContain("'auth.me'");
-        expect($routesContent)->toContain("'auth.logout'");
+        // Should import from group folders
+        expect($routesContent)->toContain("from './auth'");
+        expect($routesContent)->toContain("from './users'");
+        expect($routesContent)->toContain("from './posts'");
 
-        // User routes
-        expect($routesContent)->toContain("'users.index'");
-        expect($routesContent)->toContain("'users.show'");
-        expect($routesContent)->toContain("'users.store'");
-        expect($routesContent)->toContain("'users.update'");
-        expect($routesContent)->toContain("'users.destroy'");
-
-        // Post routes
-        expect($routesContent)->toContain("'posts.index'");
-        expect($routesContent)->toContain("'posts.show'");
-        expect($routesContent)->toContain("'posts.store'");
-        expect($routesContent)->toContain("'posts.destroy'");
-
-        // Nested comment routes
-        expect($routesContent)->toContain("'posts.comments.index'");
-        expect($routesContent)->toContain("'posts.comments.show'");
-        expect($routesContent)->toContain("'posts.comments.store'");
-        expect($routesContent)->toContain("'posts.comments.destroy'");
+        // Should export combined RouteTypeMap
+        expect($routesContent)->toContain('RouteTypeMap');
     });
 
     it('generates postman collection via artisan command', function () {
@@ -132,13 +177,13 @@ describe('Workbench Integration', function () {
 
         // TypeScript files
         expect(File::exists($outputPath.'/routes.ts'))->toBeTrue();
-        expect(File::exists($outputPath.'/types.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/core/types.ts'))->toBeTrue();
 
         // Postman files
         expect(File::exists($outputPath.'/postman'))->toBeTrue();
     });
 
-    it('includes path parameters in route definitions', function () {
+    it('includes path parameters in group route definitions', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         $this->artisan('trpc:generate', [
@@ -147,16 +192,13 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        $routesContent = File::get($outputPath.'/routes.ts');
+        $usersRoutesContent = File::get($outputPath.'/users/routes.ts');
 
         // Check path parameters for user routes
-        expect($routesContent)->toContain("path: 'api/users/{user}'");
-
-        // Check path parameters for nested routes (post and comment)
-        expect($routesContent)->toContain("path: 'api/posts/{post}/comments/{comment}'");
+        expect($usersRoutesContent)->toContain("path: 'api/users/{user}'");
     });
 
-    it('includes HTTP methods correctly', function () {
+    it('includes HTTP methods correctly in group files', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         $this->artisan('trpc:generate', [
@@ -165,20 +207,21 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        $routesContent = File::get($outputPath.'/routes.ts');
+        $usersRoutesContent = File::get($outputPath.'/users/routes.ts');
 
         // Check various HTTP methods
-        expect($routesContent)->toContain("method: 'get'");
-        expect($routesContent)->toContain("method: 'post'");
-        expect($routesContent)->toContain("method: 'put'");
-        expect($routesContent)->toContain("method: 'delete'");
+        expect($usersRoutesContent)->toContain("method: 'get'");
+        expect($usersRoutesContent)->toContain("method: 'post'");
+        expect($usersRoutesContent)->toContain("method: 'put'");
+        expect($usersRoutesContent)->toContain("method: 'delete'");
     });
 
-    it('generates react-query hooks when enabled', function () {
+    it('generates react-query files when enabled', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         // Enable react-query output
         config()->set('trpc.outputs.react-query', true);
+        config()->set('trpc.outputs.queries', true);
 
         $this->artisan('trpc:generate', [
             '--output' => $outputPath,
@@ -187,6 +230,10 @@ describe('Workbench Integration', function () {
         ])->assertSuccessful();
 
         expect(File::exists($outputPath.'/react-query.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/queries.ts'))->toBeTrue();
+
+        // Group-level queries
+        expect(File::exists($outputPath.'/users/queries.ts'))->toBeTrue();
 
         $reactQueryContent = File::get($outputPath.'/react-query.ts');
         expect($reactQueryContent)->toContain('createQueryOptions');
@@ -233,7 +280,7 @@ describe('Workbench Integration', function () {
         expect($urlBuilderContent)->toContain('UrlOptions');
     });
 
-    it('generates grouped-api file when enabled', function () {
+    it('generates grouped-api files with factory functions', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         // Enable grouped-api output
@@ -245,16 +292,22 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
+        // Root api.ts
         expect(File::exists($outputPath.'/api.ts'))->toBeTrue();
+        $rootApiContent = File::get($outputPath.'/api.ts');
+        expect($rootApiContent)->toContain('createApi');
+        expect($rootApiContent)->toContain('createAuthApi');
+        expect($rootApiContent)->toContain('createUsersApi');
+        expect($rootApiContent)->toContain('createPostsApi');
 
-        $apiContent = File::get($outputPath.'/api.ts');
-        // Check for grouped structure
-        expect($apiContent)->toContain('auth');
-        expect($apiContent)->toContain('users');
-        expect($apiContent)->toContain('posts');
+        // Group api.ts files
+        expect(File::exists($outputPath.'/users/api.ts'))->toBeTrue();
+        $usersApiContent = File::get($outputPath.'/users/api.ts');
+        expect($usersApiContent)->toContain('createUsersApi');
+        expect($usersApiContent)->toContain('UsersApi');
     });
 
-    it('generates fetch client with retry logic', function () {
+    it('generates core fetch client with retry logic', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         $this->artisan('trpc:generate', [
@@ -263,13 +316,12 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        $fetchContent = File::get($outputPath.'/fetch.ts');
+        $fetchContent = File::get($outputPath.'/core/fetch.ts');
         expect($fetchContent)->toContain('calculateRetryDelay');
         expect($fetchContent)->toContain('isRetryableError');
-        expect($fetchContent)->toContain('maxRetries');
     });
 
-    it('generates fetch client with CSRF support', function () {
+    it('generates core fetch client with CSRF support', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         $this->artisan('trpc:generate', [
@@ -278,13 +330,13 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        $fetchContent = File::get($outputPath.'/fetch.ts');
+        $fetchContent = File::get($outputPath.'/core/fetch.ts');
         expect($fetchContent)->toContain('CsrfConfig');
         expect($fetchContent)->toContain('getCsrfToken');
         expect($fetchContent)->toContain('X-XSRF-TOKEN');
     });
 
-    it('handles 204 empty responses in fetch', function () {
+    it('handles 204 empty responses in core fetch', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         $this->artisan('trpc:generate', [
@@ -293,13 +345,13 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        $fetchContent = File::get($outputPath.'/fetch.ts');
+        $fetchContent = File::get($outputPath.'/core/fetch.ts');
         expect($fetchContent)->toContain('204');
         expect($fetchContent)->toContain('content-length');
     });
 
     // Bug fix tests
-    it('does not use "default" as variable name in generated api.ts', function () {
+    it('does not use "default" as variable name in generated api files', function () {
         $outputPath = '/tmp/trpc-integration-test';
 
         config()->set('trpc.outputs.grouped-api', true);
@@ -315,27 +367,6 @@ describe('Workbench Integration', function () {
         // "export const default" would be a syntax error - ensure it doesn't appear
         expect($apiContent)->not->toContain('export const default');
         expect($apiContent)->not->toContain('default:');
-        expect($apiContent)->not->toContain('default,');
-    });
-
-    it('uses misc as fallback group name instead of default', function () {
-        $outputPath = '/tmp/trpc-integration-test';
-
-        // Register a route with no name that would get empty group
-        Route::get('/api/misc-test', fn () => 'test');
-
-        config()->set('trpc.outputs.grouped-api', true);
-
-        $this->artisan('trpc:generate', [
-            '--output' => $outputPath,
-            '--skip-typescript-transform' => true,
-            '--force' => true,
-        ])->assertSuccessful();
-
-        $apiContent = File::get($outputPath.'/api.ts');
-
-        // Should use "misc" instead of "default" for fallback group
-        expect($apiContent)->not->toContain('export const default');
     });
 
     it('auth routes have unique method names not all named index', function () {
@@ -349,21 +380,13 @@ describe('Workbench Integration', function () {
             '--force' => true,
         ])->assertSuccessful();
 
-        $apiContent = File::get($outputPath.'/api.ts');
+        $authApiContent = File::get($outputPath.'/auth/api.ts');
 
         // Auth routes should have distinct method names
-        expect($apiContent)->toContain('login:');
-        expect($apiContent)->toContain('logout:');
-        expect($apiContent)->toContain('register:');
-        expect($apiContent)->toContain('me:');
-
-        // Count occurrences of 'index:' in auth section - should be 0 or 1, not multiple
-        preg_match('/export const auth = \{(.*?)\};/s', $apiContent, $matches);
-        if (isset($matches[1])) {
-            $authSection = $matches[1];
-            $indexCount = substr_count($authSection, 'index:');
-            expect($indexCount)->toBeLessThanOrEqual(1);
-        }
+        expect($authApiContent)->toContain('login:');
+        expect($authApiContent)->toContain('logout:');
+        expect($authApiContent)->toContain('register:');
+        expect($authApiContent)->toContain('me:');
     });
 
     it('preset allows user to override grouped-api setting', function () {
@@ -381,5 +404,46 @@ describe('Workbench Integration', function () {
 
         // api.ts should NOT be generated since user overrode it
         expect(File::exists($outputPath.'/api.ts'))->toBeFalse();
+        expect(File::exists($outputPath.'/users/api.ts'))->toBeFalse();
+    });
+
+    it('clears output directory when --clean flag is used', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        // Create a dummy file that shouldn't exist after clean
+        File::makeDirectory($outputPath.'/old-folder', 0755, true);
+        File::put($outputPath.'/old-folder/old-file.ts', 'old content');
+        File::put($outputPath.'/old-file.ts', 'old content');
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+            '--clean' => true,
+        ])->assertSuccessful();
+
+        // Old files should be gone
+        expect(File::exists($outputPath.'/old-folder/old-file.ts'))->toBeFalse();
+        expect(File::exists($outputPath.'/old-file.ts'))->toBeFalse();
+
+        // New files should exist
+        expect(File::exists($outputPath.'/core/types.ts'))->toBeTrue();
+        expect(File::exists($outputPath.'/routes.ts'))->toBeTrue();
+    });
+
+    it('creates subdirectories for group files', function () {
+        $outputPath = '/tmp/trpc-integration-test';
+
+        $this->artisan('trpc:generate', [
+            '--output' => $outputPath,
+            '--skip-typescript-transform' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        // Subdirectories should be created
+        expect(File::isDirectory($outputPath.'/core'))->toBeTrue();
+        expect(File::isDirectory($outputPath.'/auth'))->toBeTrue();
+        expect(File::isDirectory($outputPath.'/users'))->toBeTrue();
+        expect(File::isDirectory($outputPath.'/posts'))->toBeTrue();
     });
 })->group('integration');

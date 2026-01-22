@@ -1,24 +1,96 @@
 @include('trpc::partials.file-header', ['description' => 'API Client Factory'])
 
-import type { RouteName, GetRoutes, PostRoutes, PutRoutes, PatchRoutes, DeleteRoutes } from './routes';
-import type {
-    ResponseOf,
-    RequiresPathParams,
-    GetOptions,
-    PostOptions,
-    PutOptions,
-    PatchOptions,
-    DeleteOptions,
-    RequestOf,
-    QueryParams,
-} from './helpers';
-import { fetchApi, type ApiClientConfig, type FetchOptions } from './fetch';
+import {
+    routes,
+    type RouteName,
+    type Routes,
+    type RouteTypeMap,
+    type GetRoutes,
+    type PostRoutes,
+    type PutRoutes,
+    type PatchRoutes,
+    type DeleteRoutes,
+} from './routes';
+import { fetchApi, type ApiClientConfig, type FetchOptions } from './core';
 
-/** Request options for the API client */
-export interface RequestOptions<T extends RouteName> extends FetchOptions {
-    readonly body?: RequestOf<T>;
+// ============================================
+// Local Type Helpers
+// ============================================
+
+/** Extract path param names as a tuple */
+type PathParams<T extends RouteName> = Routes[T]['params'];
+
+/** Extract path param names as a union */
+type PathParamNames<T extends RouteName> = PathParams<T>[number];
+
+/** Build path params object type from route */
+type ParamsOf<T extends RouteName> = PathParamNames<T> extends never
+    ? Record<string, never>
+    : { readonly [K in PathParamNames<T>]: string | number };
+
+/** Check if route requires path params */
+type RequiresPathParams<T extends RouteName> = Routes[T]['params']['length'] extends 0
+    ? false
+    : true;
+
+/** Extract request type from a route */
+type RequestOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['request']
+    : never;
+
+/** Extract response type from a route */
+type ResponseOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['response']
+    : never;
+
+/** Extract query type from a route */
+type QueryOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['query']
+    : never;
+
+/** Empty body marker */
+type NoBody = undefined;
+
+/** Query params type - uses typed query if available, otherwise generic */
+type QueryParams<T extends RouteName> = QueryOf<T> extends NoBody
+    ? Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>
+    : Partial<QueryOf<T>>;
+
+/** Base options for all method calls (no body) */
+interface MethodOptions<T extends RouteName> extends FetchOptions {
+    readonly path?: ParamsOf<T>;
     readonly query?: QueryParams<T>;
 }
+
+/** Options for mutation methods (with body) */
+interface MutationOptions<T extends RouteName> extends MethodOptions<T> {
+    readonly body?: RequestOf<T>;
+}
+
+/** GET method options - conditionally require path params */
+type GetOptions<T extends GetRoutes> = RequiresPathParams<T> extends true
+    ? MethodOptions<T> & { readonly path: ParamsOf<T> }
+    : MethodOptions<T>;
+
+/** POST method options - conditionally require path params */
+type PostOptions<T extends PostRoutes> = RequiresPathParams<T> extends true
+    ? MutationOptions<T> & { readonly path: ParamsOf<T> }
+    : MutationOptions<T>;
+
+/** PUT method options - conditionally require path params */
+type PutOptions<T extends PutRoutes> = RequiresPathParams<T> extends true
+    ? MutationOptions<T> & { readonly path: ParamsOf<T> }
+    : MutationOptions<T>;
+
+/** PATCH method options - conditionally require path params */
+type PatchOptions<T extends PatchRoutes> = RequiresPathParams<T> extends true
+    ? MutationOptions<T> & { readonly path: ParamsOf<T> }
+    : MutationOptions<T>;
+
+/** DELETE method options - conditionally require path params */
+type DeleteOptions<T extends DeleteRoutes> = RequiresPathParams<T> extends true
+    ? MethodOptions<T> & { readonly path: ParamsOf<T> }
+    : MethodOptions<T>;
 
 /** Type-safe API client with method-specific calls */
 export interface ApiClient {
@@ -79,7 +151,7 @@ export interface ApiClient {
  * await api.put('users.update', { path: { id: 1 }, body: { name: 'Jane' } });
  * await api.delete('users.destroy', { path: { id: 1 } });
  */
-export function createApiClient(clientConfig: ApiClientConfig = {}): ApiClient {
+export function createApiClient(clientConfig: ApiClientConfig): ApiClient {
     return {
         get: <T extends GetRoutes>(
             name: T,
@@ -88,17 +160,20 @@ export function createApiClient(clientConfig: ApiClientConfig = {}): ApiClient {
                 : [options?: GetOptions<T>]
         ): Promise<ResponseOf<T>> => {
             const [options] = args;
-            return fetchApi(name, {
-                path: (options as GetOptions<T> | undefined)?.path ?? null,
-                config: {
-                    query: options?.query,
-                    headers: options?.headers,
-                    next: options?.next,
-                    mobile: options?.mobile,
-                    signal: options?.signal,
-                },
-                clientConfig,
-            }) as Promise<ResponseOf<T>>;
+            return fetchApi(
+                routes[name],
+                {
+                    path: (options as GetOptions<T> | undefined)?.path ?? null,
+                    query: options?.query as Record<string, string | number | boolean | readonly (string | number)[] | null | undefined> | undefined,
+                    clientConfig,
+                    requestOptions: {
+                        headers: options?.headers,
+                        next: options?.next,
+                        mobile: options?.mobile,
+                        signal: options?.signal,
+                    },
+                }
+            );
         },
 
         post: <T extends PostRoutes>(
@@ -108,18 +183,21 @@ export function createApiClient(clientConfig: ApiClientConfig = {}): ApiClient {
                 : [options?: PostOptions<T>]
         ): Promise<ResponseOf<T>> => {
             const [options] = args;
-            return fetchApi(name, {
-                path: (options as PostOptions<T> | undefined)?.path ?? null,
-                config: {
+            return fetchApi(
+                routes[name],
+                {
+                    path: (options as PostOptions<T> | undefined)?.path ?? null,
                     body: (options as PostOptions<T> | undefined)?.body,
-                    query: options?.query,
-                    headers: options?.headers,
-                    next: options?.next,
-                    mobile: options?.mobile,
-                    signal: options?.signal,
-                },
-                clientConfig,
-            }) as Promise<ResponseOf<T>>;
+                    query: options?.query as Record<string, string | number | boolean | readonly (string | number)[] | null | undefined> | undefined,
+                    clientConfig,
+                    requestOptions: {
+                        headers: options?.headers,
+                        next: options?.next,
+                        mobile: options?.mobile,
+                        signal: options?.signal,
+                    },
+                }
+            );
         },
 
         put: <T extends PutRoutes>(
@@ -129,18 +207,21 @@ export function createApiClient(clientConfig: ApiClientConfig = {}): ApiClient {
                 : [options?: PutOptions<T>]
         ): Promise<ResponseOf<T>> => {
             const [options] = args;
-            return fetchApi(name, {
-                path: (options as PutOptions<T> | undefined)?.path ?? null,
-                config: {
+            return fetchApi(
+                routes[name],
+                {
+                    path: (options as PutOptions<T> | undefined)?.path ?? null,
                     body: (options as PutOptions<T> | undefined)?.body,
-                    query: options?.query,
-                    headers: options?.headers,
-                    next: options?.next,
-                    mobile: options?.mobile,
-                    signal: options?.signal,
-                },
-                clientConfig,
-            }) as Promise<ResponseOf<T>>;
+                    query: options?.query as Record<string, string | number | boolean | readonly (string | number)[] | null | undefined> | undefined,
+                    clientConfig,
+                    requestOptions: {
+                        headers: options?.headers,
+                        next: options?.next,
+                        mobile: options?.mobile,
+                        signal: options?.signal,
+                    },
+                }
+            );
         },
 
         patch: <T extends PatchRoutes>(
@@ -150,18 +231,21 @@ export function createApiClient(clientConfig: ApiClientConfig = {}): ApiClient {
                 : [options?: PatchOptions<T>]
         ): Promise<ResponseOf<T>> => {
             const [options] = args;
-            return fetchApi(name, {
-                path: (options as PatchOptions<T> | undefined)?.path ?? null,
-                config: {
+            return fetchApi(
+                routes[name],
+                {
+                    path: (options as PatchOptions<T> | undefined)?.path ?? null,
                     body: (options as PatchOptions<T> | undefined)?.body,
-                    query: options?.query,
-                    headers: options?.headers,
-                    next: options?.next,
-                    mobile: options?.mobile,
-                    signal: options?.signal,
-                },
-                clientConfig,
-            }) as Promise<ResponseOf<T>>;
+                    query: options?.query as Record<string, string | number | boolean | readonly (string | number)[] | null | undefined> | undefined,
+                    clientConfig,
+                    requestOptions: {
+                        headers: options?.headers,
+                        next: options?.next,
+                        mobile: options?.mobile,
+                        signal: options?.signal,
+                    },
+                }
+            );
         },
 
         delete: <T extends DeleteRoutes>(
@@ -171,17 +255,20 @@ export function createApiClient(clientConfig: ApiClientConfig = {}): ApiClient {
                 : [options?: DeleteOptions<T>]
         ): Promise<ResponseOf<T>> => {
             const [options] = args;
-            return fetchApi(name, {
-                path: (options as DeleteOptions<T> | undefined)?.path ?? null,
-                config: {
-                    query: options?.query,
-                    headers: options?.headers,
-                    next: options?.next,
-                    mobile: options?.mobile,
-                    signal: options?.signal,
-                },
-                clientConfig,
-            }) as Promise<ResponseOf<T>>;
+            return fetchApi(
+                routes[name],
+                {
+                    path: (options as DeleteOptions<T> | undefined)?.path ?? null,
+                    query: options?.query as Record<string, string | number | boolean | readonly (string | number)[] | null | undefined> | undefined,
+                    clientConfig,
+                    requestOptions: {
+                        headers: options?.headers,
+                        next: options?.next,
+                        mobile: options?.mobile,
+                        signal: options?.signal,
+                    },
+                }
+            );
         },
     };
 }
