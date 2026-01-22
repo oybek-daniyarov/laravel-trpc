@@ -1,101 +1,75 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expectTypeOf } from 'vitest';
 import type { RequestOf, ResponseOf, QueryOf, ErrorOf } from '../resources/js/api/core/helpers';
+import type { NoBody, ValidationError, PaginatedResponse } from '../resources/js/api/core/types';
 
-/**
- * Type helper tests - these verify that the type helpers work correctly
- * at compile time. If these tests compile, the types are working.
- */
 describe('Type Helpers', () => {
   describe('RequestOf', () => {
-    it('extracts request type from route name', () => {
-      // This test verifies that RequestOf accepts a route name string
-      type LoginRequest = RequestOf<'auth.login'>;
-      type StoreUserRequest = RequestOf<'users.store'>;
-
-      // If this compiles, the type helper works correctly
-      // We can't test the actual type at runtime, but we can verify it's not never
-      const assertNotNever = <T>(_value: T extends never ? 'fail' : 'pass') => {};
-
-      // These should compile without errors
-      assertNotNever<LoginRequest>('pass');
-      assertNotNever<StoreUserRequest>('pass');
-
-      expect(true).toBe(true);
+    it('extracts CreateUserData for users.store', () => {
+      expectTypeOf<RequestOf<'users.store'>>().toEqualTypeOf<Workbench.App.Data.CreateUserData>();
     });
 
-    it('returns NoBody for routes without request type', () => {
-      // Routes without request should have NoBody as request type
-      type _ShowUserRequest = RequestOf<'users.show'>;
+    it('extracts UpdateUserData for users.update', () => {
+      expectTypeOf<RequestOf<'users.update'>>().toEqualTypeOf<Workbench.App.Data.UpdateUserData>();
+    });
 
-      // This compiles, verifying the type works
-      expect(true).toBe(true);
+    it('extracts LoginData for auth.login', () => {
+      expectTypeOf<RequestOf<'auth.login'>>().toEqualTypeOf<Workbench.App.Data.LoginData>();
+    });
+
+    it('returns NoBody for GET routes', () => {
+      expectTypeOf<RequestOf<'users.show'>>().toEqualTypeOf<NoBody>();
+      expectTypeOf<RequestOf<'users.index'>>().toEqualTypeOf<Workbench.App.Data.UserQueryData>();
     });
   });
 
   describe('ResponseOf', () => {
-    it('extracts response type from route name', () => {
-      type LoginResponse = ResponseOf<'auth.login'>;
-      type UsersIndexResponse = ResponseOf<'users.index'>;
+    it('extracts UserData for users.show', () => {
+      expectTypeOf<ResponseOf<'users.show'>>().toEqualTypeOf<Workbench.App.Data.UserData>();
+    });
 
-      const assertNotNever = <T>(_value: T extends never ? 'fail' : 'pass') => {};
-      assertNotNever<LoginResponse>('pass');
-      assertNotNever<UsersIndexResponse>('pass');
+    it('extracts PaginatedResponse<UserData> for users.index', () => {
+      expectTypeOf<ResponseOf<'users.index'>>().toEqualTypeOf<
+        PaginatedResponse<Workbench.App.Data.UserData>
+      >();
+    });
 
-      expect(true).toBe(true);
+    it('extracts UserData for users.store', () => {
+      expectTypeOf<ResponseOf<'users.store'>>().toEqualTypeOf<Workbench.App.Data.UserData>();
     });
   });
 
   describe('QueryOf', () => {
-    it('extracts query type from route name', () => {
-      type UsersIndexQuery = QueryOf<'users.index'>;
+    it('extracts UserQueryData for users.index', () => {
+      expectTypeOf<QueryOf<'users.index'>>().toEqualTypeOf<Workbench.App.Data.UserQueryData>();
+    });
 
-      const assertNotNever = <T>(_value: T extends never ? 'fail' : 'pass') => {};
-      assertNotNever<UsersIndexQuery>('pass');
-
-      expect(true).toBe(true);
+    it('returns NoBody for routes without query params', () => {
+      expectTypeOf<QueryOf<'users.show'>>().toEqualTypeOf<NoBody>();
+      expectTypeOf<QueryOf<'users.store'>>().toEqualTypeOf<NoBody>();
     });
   });
 
   describe('ErrorOf', () => {
-    it('extracts error type from route name', () => {
-      type LoginError = ErrorOf<'auth.login'>;
-
-      const assertNotNever = <T>(_value: T extends never ? 'fail' : 'pass') => {};
-      assertNotNever<LoginError>('pass');
-
-      expect(true).toBe(true);
+    it('returns ValidationError as default error type', () => {
+      expectTypeOf<ErrorOf<'users.store'>>().toEqualTypeOf<ValidationError>();
+      expectTypeOf<ErrorOf<'users.update'>>().toEqualTypeOf<ValidationError>();
+      expectTypeOf<ErrorOf<'auth.login'>>().toEqualTypeOf<ValidationError>();
     });
   });
 
   describe('Type constraints', () => {
-    it('only accepts valid route names', () => {
-      // This test verifies that the type helpers are constrained to RouteName
-      // If someone tries to use an invalid route name, TypeScript will error
-
-      // Valid route names should work (compile time check)
-      type _ValidRequest = RequestOf<'users.index'>;
-      type _ValidResponse = ResponseOf<'users.show'>;
-
-      // Invalid route names would cause a compile error:
-      // type InvalidRequest = RequestOf<'invalid.route'>; // Error!
-
-      expect(true).toBe(true);
-    });
-
     it('works with all HTTP methods', () => {
-      // GET routes
-      type _GetResponse = ResponseOf<'users.index'>;
+      // GET - users.show
+      expectTypeOf<ResponseOf<'users.show'>>().toEqualTypeOf<Workbench.App.Data.UserData>();
 
-      // POST routes
-      type _PostRequest = RequestOf<'users.store'>;
+      // POST - users.store
+      expectTypeOf<RequestOf<'users.store'>>().toEqualTypeOf<Workbench.App.Data.CreateUserData>();
 
-      // PUT routes
-      type _PutRequest = RequestOf<'users.update'>;
+      // PUT - users.update
+      expectTypeOf<RequestOf<'users.update'>>().toEqualTypeOf<Workbench.App.Data.UpdateUserData>();
 
-      // DELETE routes
-      type _DeleteResponse = ResponseOf<'users.destroy'>;
-
-      expect(true).toBe(true);
+      // DELETE - users.destroy returns unknown (no typed response)
+      expectTypeOf<ResponseOf<'users.destroy'>>().toEqualTypeOf<unknown>();
     });
   });
 });
