@@ -4,13 +4,17 @@
     "license": "MIT",
     "keywords": [
         "laravel",
-        "trpc",
         "typescript",
         "api",
         "routes",
         "type-safe",
+        "typed-api",
+        "client-generator",
+        "codegen",
+        "react-query",
+        "inertia",
         "postman",
-        "codegen"
+        "full-stack"
     ],
     "homepage": "https://github.com/oybek-daniyarov/laravel-trpc",
     "support": {
