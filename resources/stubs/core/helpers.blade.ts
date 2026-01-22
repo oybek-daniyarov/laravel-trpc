@@ -2,6 +2,7 @@
 
 import type { NoBody } from './types';
 import type { FetchOptions } from './fetch';
+import type { RouteName, RouteTypeMap } from '../routes';
 
 // ============================================
 // Generic Type Helpers
@@ -24,17 +25,25 @@ export type GenericQueryParams = Record<string, string | number | boolean | null
 // Route Type Map Helpers
 // ============================================
 
-/** Extract request type from a route type map entry */
-export type RequestOf<T extends { request: unknown }> = T['request'];
+/** Extract request type from a route name */
+export type RequestOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['request']
+    : never;
 
-/** Extract query type from a route type map entry */
-export type QueryOf<T extends { query: unknown }> = T['query'];
+/** Extract query type from a route name */
+export type QueryOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['query']
+    : never;
 
-/** Extract response type from a route type map entry */
-export type ResponseOf<T extends { response: unknown }> = T['response'];
+/** Extract response type from a route name */
+export type ResponseOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['response']
+    : never;
 
-/** Extract error type from a route type map entry */
-export type ErrorOf<T extends { error: unknown }> = T['error'];
+/** Extract error type from a route name */
+export type ErrorOf<T extends RouteName> = T extends keyof RouteTypeMap
+    ? RouteTypeMap[T]['error']
+    : never;
 
 /** Query params - uses typed query if available, otherwise generic */
 export type QueryParams<TQuery> = TQuery extends NoBody
