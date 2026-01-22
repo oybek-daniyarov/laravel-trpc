@@ -7,7 +7,6 @@
 # Lock files (not committed for libraries)
 /composer.lock
 /package-lock.json
-/workbench/package-lock.json
 
 # IDE
 /.idea
