@@ -48,7 +48,7 @@ See it in action — a Laravel API with Inertia.js frontend, fully typed end-to-
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.3+
 - Laravel 11.x or 12.x
 - [spatie/laravel-data](https://spatie.be/docs/laravel-data)
 - [spatie/laravel-typescript-transformer](https://spatie.be/docs/typescript-transformer)

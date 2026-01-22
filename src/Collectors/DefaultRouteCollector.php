@@ -86,7 +86,7 @@ final class DefaultRouteCollector implements Collector
         }
 
         // Skip routes that still have empty names after generation
-        if (empty($name) || $name === '') {
+        if ($name === '') {
             return null;
         }
 
