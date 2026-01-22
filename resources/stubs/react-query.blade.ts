@@ -29,7 +29,7 @@ type ResponseOf<T extends RouteName> = T extends keyof RouteTypeMap
     : never;
 
 /** Query params type */
-type QueryParams<T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
+type QueryParams<_T extends RouteName> = Record<string, string | number | boolean | null | undefined | readonly (string | number)[]>;
 
 // ============================================
 // Query Key Helpers

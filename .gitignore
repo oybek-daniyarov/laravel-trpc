@@ -27,6 +27,7 @@ Thumbs.db
 /.phpunit.cache
 /.phpunit.result.cache
 /coverage
+/workbench/coverage
 
 # Build & Cache
 .php-cs-fixer.cache

@@ -1,0 +1,1 @@
+cd workbench && npx lint-staged

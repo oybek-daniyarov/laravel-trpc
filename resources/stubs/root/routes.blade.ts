@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/triple-slash-reference */
 /// <reference path="./laravel.d.ts" />
 
-import type { NoBody } from './core';
 @foreach(array_keys($groupedRoutes) as $group)
 @php
     $groupName = \Illuminate\Support\Str::camel($group);
