@@ -436,6 +436,40 @@ Presets override the `outputs` array. To customize individual outputs, set `pres
 ],
 ```
 
+### Middleware Configuration
+
+Control how middleware appears in the generated TypeScript output:
+
+```php
+'middleware' => [
+    // Exclude middleware from generated output (supports wildcards)
+    'exclude' => [
+        'Stancl\Tenancy\*',
+        'App\Http\Middleware\TrustProxies',
+    ],
+
+    // Transform FQCNs to short class names (default: true)
+    'short_names' => true,
+],
+```
+
+**Before** (with `short_names: false` and no exclusions):
+```typescript
+middleware: ['api', 'Stancl\\Tenancy\\Middleware\\InitializeTenancyByDomain', 'auth:sanctum'] as const,
+```
+
+**After** (with `short_names: true` and Tenancy excluded):
+```typescript
+middleware: ['api', 'auth:sanctum'] as const,
+```
+
+| Middleware Input | Short Name Output |
+|------------------|-------------------|
+| `Stancl\Tenancy\Middleware\InitializeTenancyByDomain` | `InitializeTenancyByDomain` |
+| `App\Http\Middleware\RateLimiter:api` | `RateLimiter:api` |
+| `auth:sanctum` | `auth:sanctum` (unchanged) |
+| `web` | `web` (unchanged) |
+
 ## Middleware & Authentication
 
 The generated routes include middleware information, allowing you to build auth-aware UIs.

@@ -75,6 +75,30 @@ return [
         'ignition.*',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Middleware Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure how middleware is processed in the generated TypeScript output.
+    | You can exclude certain middleware from appearing and transform FQCNs
+    | to short class names for cleaner output.
+    |
+    */
+
+    'middleware' => [
+        // Middleware patterns to exclude from generated output
+        // Supports wildcards via Str::is() (e.g., 'Stancl\Tenancy\*')
+        'exclude' => [
+            // 'Stancl\Tenancy\*',
+            // 'App\Http\Middleware\TrustProxies',
+        ],
+
+        // Transform FQCNs to short class names (default: true)
+        // 'Stancl\Tenancy\Middleware\InitializeTenancyByDomain' => 'InitializeTenancyByDomain'
+        'short_names' => true,
+    ],
+
     // HTTP methods to exclude from generation
     'exclude_methods' => [
         'options',

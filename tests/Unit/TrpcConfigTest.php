@@ -333,3 +333,45 @@ it('spa preset enables both inertia and react-query', function () {
         ->and($outputs['react-query'])->toBeTrue()
         ->and($outputs['queries'])->toBeTrue();
 });
+
+// Middleware configuration tests
+
+it('returns middleware exclude patterns', function () {
+    $config = new TrpcConfig([
+        'middleware' => [
+            'exclude' => [
+                'Stancl\\Tenancy\\*',
+                'App\\Http\\Middleware\\TrustProxies',
+            ],
+        ],
+    ]);
+
+    $patterns = $config->getMiddlewareExcludePatterns();
+
+    expect($patterns)->toBe([
+        'Stancl\\Tenancy\\*',
+        'App\\Http\\Middleware\\TrustProxies',
+    ]);
+});
+
+it('returns empty middleware exclude patterns by default', function () {
+    $config = new TrpcConfig;
+
+    expect($config->getMiddlewareExcludePatterns())->toBe([]);
+});
+
+it('returns short middleware names setting', function () {
+    $config = new TrpcConfig([
+        'middleware' => [
+            'short_names' => false,
+        ],
+    ]);
+
+    expect($config->shouldUseShortMiddlewareNames())->toBeFalse();
+});
+
+it('returns true for short middleware names by default', function () {
+    $config = new TrpcConfig;
+
+    expect($config->shouldUseShortMiddlewareNames())->toBeTrue();
+});

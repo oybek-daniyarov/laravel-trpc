@@ -12,6 +12,7 @@ use OybekDaniyarov\LaravelTrpc\Collections\RouteCollection;
 use OybekDaniyarov\LaravelTrpc\Contracts\Collector;
 use OybekDaniyarov\LaravelTrpc\Data\RouteData;
 use OybekDaniyarov\LaravelTrpc\Data\RouteTypeInfo;
+use OybekDaniyarov\LaravelTrpc\Services\MiddlewareProcessor;
 use OybekDaniyarov\LaravelTrpc\Services\RouteTypeExtractor;
 use OybekDaniyarov\LaravelTrpc\TrpcConfig;
 use ReflectionMethod;
@@ -33,6 +34,7 @@ final class DefaultRouteCollector implements Collector
     public function __construct(
         private readonly TrpcConfig $config,
         private readonly RouteTypeExtractor $typeExtractor,
+        private readonly MiddlewareProcessor $middlewareProcessor,
     ) {}
 
     /**
@@ -95,7 +97,7 @@ final class DefaultRouteCollector implements Collector
         $typeKey = "{$method}:{$uri}";
         $typeInfo = $this->routeTypes[$typeKey] ?? new RouteTypeInfo;
         $group = $this->determineRouteGroup($name);
-        $middleware = $route->gatherMiddleware();
+        $middleware = $this->middlewareProcessor->process($route->gatherMiddleware());
 
         return new RouteData(
             method: $method,

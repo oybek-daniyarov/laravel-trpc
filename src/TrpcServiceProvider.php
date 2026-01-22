@@ -7,6 +7,7 @@ namespace OybekDaniyarov\LaravelTrpc;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 use OybekDaniyarov\LaravelTrpc\Commands\GenerateTrpcCommand;
+use OybekDaniyarov\LaravelTrpc\Services\MiddlewareProcessor;
 use OybekDaniyarov\LaravelTrpc\Services\RouteTypeExtractor;
 use OybekDaniyarov\LaravelTrpc\Services\StubRenderer;
 
@@ -22,6 +23,7 @@ final class TrpcServiceProvider extends ServiceProvider implements DeferrablePro
 
         $this->app->singleton(StubRenderer::class);
         $this->app->singleton(RouteTypeExtractor::class);
+        $this->app->singleton(MiddlewareProcessor::class);
     }
 
     public function boot(): void
@@ -60,6 +62,7 @@ final class TrpcServiceProvider extends ServiceProvider implements DeferrablePro
             TrpcConfig::class,
             StubRenderer::class,
             RouteTypeExtractor::class,
+            MiddlewareProcessor::class,
         ];
     }
 }

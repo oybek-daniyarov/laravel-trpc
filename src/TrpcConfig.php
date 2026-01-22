@@ -226,6 +226,24 @@ final class TrpcConfig
     }
 
     /**
+     * Get middleware exclude patterns.
+     *
+     * @return array<int, string>
+     */
+    public function getMiddlewareExcludePatterns(): array
+    {
+        return $this->get('middleware.exclude', []);
+    }
+
+    /**
+     * Check if short middleware names should be used.
+     */
+    public function shouldUseShortMiddlewareNames(): bool
+    {
+        return $this->get('middleware.short_names', true);
+    }
+
+    /**
      * Get output file configuration.
      *
      * @return array<string, bool>
